@@ -7,7 +7,7 @@ import { TaskInput } from './components/TaskInput';
 import { CompletedQuests } from './components/CompletedQuests';
 import { SettingsModal } from './components/SettingsModal';
 import { themes } from './utils/themes';
-import { Settings, Sun, Moon, Diamond, Timer, Check } from './components/icons';
+import { Settings, Sun, Moon, Diamond, Timer } from './components/icons';
 
 function App() {
   const {
@@ -197,18 +197,6 @@ function App() {
           currentTheme={settings.theme}
           triggerUpdate={questUpdateTrigger}
         />
-
-        {/* Stats Footer */}
-        <footer className="flex justify-between items-center mt-6">
-          <div
-            className={`flex items-center gap-2 ${theme.textMuted} no-select`}
-          >
-            <Check className="w-5 h-5" />
-            <span className="text-sm">
-              SESSIONS: <span className={`${theme.text}`}>{sessionCount}</span>
-            </span>
-          </div>
-        </footer>
       </div>
 
       <SettingsModal
