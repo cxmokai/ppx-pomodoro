@@ -1,99 +1,114 @@
 export interface Theme {
   name: string
   bg: string
+  surface: string
+  surfaceHighlight: string
   text: string
   textMuted: string
   accent: string
-  accentHover: string
+  accentDark: string
+  success: string
+  warning: string
+  danger: string
   border: string
+  shadow: string
   input: string
-  ring: string
   button: string
   buttonPrimary: string
   buttonSecondary: string
   modal: string
+  pixelBorder: string
 }
 
-export interface ModeColors {
-  name: string
-  color: string
+// Neon Cyberpunk palette
+const neonPalette = {
+  bg: '#0d0221',        // Deep purple-black
+  surface: '#1a0a2e',   // Dark purple
+  surfaceHighlight: '#2d1b4e',  // Lighter purple
+  cyan: '#00fff5',      // Neon cyan
+  magenta: '#ff00ff',   // Neon magenta
+  pink: '#ff006e',      // Hot pink
+  yellow: '#ffbe0b',    // Neon yellow
+  text: '#ffffff',      // White
+  textMuted: '#b8a8d8',  // Muted lavender
+  border: '#4a3b69',    // Purple border
+  shadow: '#1a0a2e',    // Shadow color
+}
+
+// Terminal Hacker palette
+const terminalPalette = {
+  bg: '#0a0a0a',        // Deep black
+  surface: '#111111',   // Slightly lighter black for panels
+  surfaceHighlight: '#1a1a1a',  // Highlight surface
+  green: '#00ff41',     // Matrix green - primary
+  greenDark: '#008f11', // Darker green - hover
+  greenMuted: '#4a664a', // Dimmed green
+  text: '#00ff41',      // Primary text in green
+  textMuted: '#3d5c3d', // Subdued green for labels
+  border: '#333333',    // Subtle gray borders
+  shadow: '#050505',    // Shadow color
 }
 
 export const themes: Record<string, Theme> = {
-  zedDark: {
-    name: 'Zed Dark',
-    bg: 'bg-[#0d1117]',
-    text: 'text-white',
-    textMuted: 'text-gray-400',
-    accent: '#58a6ff',
-    accentHover: 'hover:text-[#79c0ff]',
-    border: 'border-[#30363d]',
-    input: 'bg-[#0d1117] border-[#30363d] text-white placeholder:text-gray-500',
-    ring: '#58a6ff',
-    button: 'bg-[#21262d] hover:bg-[#30363d] text-white border-[#30363d]',
-    buttonPrimary: 'bg-[#58a6ff] hover:bg-[#79c0ff] text-white border-[#58a6ff]',
-    buttonSecondary: 'bg-[#da3633] hover:bg-[#f85149] text-white border-[#da3633]',
-    modal: 'bg-[#161b22] border-[#30363d]',
+  neon: {
+    name: 'Neon',
+    bg: `bg-[${neonPalette.bg}]`,
+    surface: `bg-[${neonPalette.surface}]`,
+    surfaceHighlight: `bg-[${neonPalette.surfaceHighlight}]`,
+    text: `text-[${neonPalette.text}]`,
+    textMuted: `text-[${neonPalette.textMuted}]`,
+    accent: neonPalette.cyan,
+    accentDark: '#00d4ce',
+    success: '#00ff88',
+    warning: neonPalette.yellow,
+    danger: neonPalette.pink,
+    border: `border-[${neonPalette.border}]`,
+    shadow: `shadow-[6px_6px_0px_0px_${neonPalette.shadow}]`,
+    input: `bg-[${neonPalette.bg}] border-[${neonPalette.border}] text-[${neonPalette.text}] placeholder:text-[${neonPalette.textMuted}]`,
+    button: `bg-[${neonPalette.surfaceHighlight}] hover:bg-[${neonPalette.surface}] text-[${neonPalette.text}] border-[${neonPalette.border}] shadow-[4px_4px_0px_0px_${neonPalette.shadow}] active:shadow-[2px_2px_0px_0px_${neonPalette.shadow}] active:translate-x-[2px] active:translate-y-[2px]`,
+    buttonPrimary: `bg-[${neonPalette.cyan}] hover:bg-[#33ffff] text-[${neonPalette.bg}] border-[${neonPalette.cyan}] shadow-[4px_4px_0px_0px_${neonPalette.bg}] active:shadow-[2px_2px_0px_0px_${neonPalette.bg}] active:translate-x-[2px] active:translate-y-[2px]`,
+    buttonSecondary: `bg-[${neonPalette.magenta}] hover:bg-[#ff33ff] text-[${neonPalette.bg}] border-[${neonPalette.magenta}] shadow-[4px_4px_0px_0px_${neonPalette.bg}] active:shadow-[2px_2px_0px_0px_${neonPalette.bg}] active:translate-x-[2px] active:translate-y-[2px]`,
+    modal: `bg-[${neonPalette.surface}] border-[${neonPalette.border}]`,
+    pixelBorder: `border-[4px] border-[${neonPalette.border}]`,
   },
-  zedLight: {
-    name: 'Zed Light',
-    bg: 'bg-[#ffffff]',
-    text: 'text-[#24292f]',
-    textMuted: 'text-gray-600',
-    accent: '#0969da',
-    accentHover: 'hover:text-[#1f6feb]',
-    border: 'border-[#d0d7de]',
-    input: 'bg-[#f6f8fa] border-[#d0d7de] text-[#24292f] placeholder:text-gray-400',
-    ring: '#0969da',
-    button: 'bg-[#f6f8fa] hover:bg-[#eaeef2] text-[#24292f] border-[#d0d7de]',
-    buttonPrimary: 'bg-[#0969da] hover:bg-[#1f6feb] text-white border-[#0969da]',
-    buttonSecondary: 'bg-[#cf222e] hover:bg-[#da3633] text-white border-[#cf222e]',
-    modal: 'bg-white border-[#d0d7de]',
-  },
-  midnight: {
-    name: 'Midnight',
-    bg: 'bg-[#1a1b26]',
-    text: 'text-[#a9b1d6]',
-    textMuted: 'text-[#565f89]',
-    accent: '#7aa2f7',
-    accentHover: 'hover:text-[#89b4fa]',
-    border: 'border-[#414868]',
-    input: 'bg-[#1f2335] border-[#414868] text-[#a9b1d6] placeholder:text-[#565f89]',
-    ring: '#7aa2f7',
-    button: 'bg-[#1f2335] hover:bg-[#24283b] text-[#a9b1d6] border-[#414868]',
-    buttonPrimary: 'bg-[#7aa2f7] hover:bg-[#89b4fa] text-[#1a1b26] border-[#7aa2f7]',
-    buttonSecondary: 'bg-[#f7768e] hover:bg-[#ff9eb5] text-[#1a1b26] border-[#f7768e]',
-    modal: 'bg-[#1f2335] border-[#414868]',
-  },
-  forest: {
-    name: 'Forest',
-    bg: 'bg-[#1a1b26]',
-    text: 'text-[#c0caf5]',
-    textMuted: 'text-[#565f89]',
-    accent: '#9ece6a',
-    accentHover: 'hover:text-[#b9f27c]',
-    border: 'border-[#565f89]',
-    input: 'bg-[#24283b] border-[#565f89] text-[#c0caf5] placeholder:text-[#565f89]',
-    ring: '#9ece6a',
-    button: 'bg-[#24283b] hover:bg-[#2f3549] text-[#c0caf5] border-[#565f89]',
-    buttonPrimary: 'bg-[#9ece6a] hover:bg-[#b9f27c] text-[#1a1b26] border-[#9ece6a]',
-    buttonSecondary: 'bg-[#f7768e] hover:bg-[#ff9eb5] text-[#1a1b26] border-[#f7768e]',
-    modal: 'bg-[#24283b] border-[#565f89]',
+  terminal: {
+    name: 'Terminal',
+    bg: `bg-[${terminalPalette.bg}]`,
+    surface: `bg-[${terminalPalette.surface}]`,
+    surfaceHighlight: `bg-[${terminalPalette.surfaceHighlight}]`,
+    text: `text-[${terminalPalette.text}]`,
+    textMuted: `text-[${terminalPalette.textMuted}]`,
+    accent: terminalPalette.green,
+    accentDark: terminalPalette.greenDark,
+    success: terminalPalette.green,
+    warning: '#ffaa00',
+    danger: '#ff3333',
+    border: `border-[${terminalPalette.border}]`,
+    shadow: `shadow-[4px_4px_0px_0px_${terminalPalette.shadow}]`,
+    input: `bg-[${terminalPalette.bg}] border-[${terminalPalette.border}] text-[${terminalPalette.text}] placeholder:text-[${terminalPalette.textMuted}]`,
+    button: `bg-[${terminalPalette.surfaceHighlight}] hover:bg-[${terminalPalette.greenDark}] text-[${terminalPalette.text}] border-[${terminalPalette.border}] shadow-[3px_3px_0px_0px_${terminalPalette.shadow}] active:shadow-[1px_1px_0px_0px_${terminalPalette.shadow}] active:translate-x-[2px] active:translate-y-[2px]`,
+    buttonPrimary: `bg-[${terminalPalette.green}] hover:bg-[${terminalPalette.greenDark}] text-[${terminalPalette.bg}] border-[${terminalPalette.green}] shadow-[3px_3px_0px_0px_${terminalPalette.shadow}] active:shadow-[1px_1px_0px_0px_${terminalPalette.shadow}] active:translate-x-[2px] active:translate-y-[2px]`,
+    buttonSecondary: `bg-[${terminalPalette.surfaceHighlight}] hover:bg-[${terminalPalette.greenDark}] text-[${terminalPalette.text}] border-[${terminalPalette.border}] shadow-[3px_3px_0px_0px_${terminalPalette.shadow}] active:shadow-[1px_1px_0px_0px_${terminalPalette.shadow}] active:translate-x-[2px] active:translate-y-[2px]`,
+    modal: `bg-[${terminalPalette.surface}] border-[${terminalPalette.border}]`,
+    pixelBorder: `border-[3px] border-[${terminalPalette.border}]`,
   },
 }
 
-export const modeColors: Record<string, ModeColors> = {
+export const modeColors: Record<string, { name: string; color: string; bg: string }> = {
   work: {
-    name: 'Work',
-    color: '#58a6ff',
+    name: 'WORK MODE',
+    color: '#00ff41',  // Green for focus work
+    bg: 'bg-[#00ff41]',
   },
   shortBreak: {
-    name: 'Short Break',
-    color: '#9ece6a',
+    name: 'SHORT BREAK',
+    color: '#00cc33',  // Slightly dimmed green
+    bg: 'bg-[#00cc33]',
   },
   longBreak: {
-    name: 'Long Break',
-    color: '#7aa2f7',
+    name: 'LONG BREAK',
+    color: '#009926',  // Even more dimmed
+    bg: 'bg-[#009926]',
   },
 }
 
@@ -112,5 +127,11 @@ export const defaultSettings: Settings = {
   longBreakDuration: 15,
   longBreakInterval: 4,
   soundEnabled: true,
-  theme: 'zedDark',
+  theme: 'terminal',  // Changed from 'neon'
+}
+
+export interface CompletedQuest {
+  id: string
+  title: string
+  completedAt: number
 }
