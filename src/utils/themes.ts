@@ -1,6 +1,9 @@
 export interface Theme {
   name: string
   bg: string
+  surface: string
+  surfaceHighlight: string
+  shadow: string
   text: string
   textMuted: string
   accent: string
@@ -37,6 +40,9 @@ export const themes: Record<string, Theme> = {
   zedDark: {
     name: 'Zed Dark',
     bg: 'bg-[#0d1117]',
+    surface: 'bg-[#161b22]',
+    surfaceHighlight: 'bg-[#21262d]',
+    shadow: 'shadow-[6px_6px_0px_0px_#010409]',
     text: 'text-white',
     textMuted: 'text-gray-400',
     accent: '#58a6ff',
@@ -52,6 +58,9 @@ export const themes: Record<string, Theme> = {
   zedLight: {
     name: 'Zed Light',
     bg: 'bg-[#ffffff]',
+    surface: 'bg-[#f6f8fa]',
+    surfaceHighlight: 'bg-[#eaeef2]',
+    shadow: 'shadow-[6px_6px_0px_0px_#d0d7de]',
     text: 'text-[#24292f]',
     textMuted: 'text-gray-600',
     accent: '#0969da',
@@ -67,6 +76,9 @@ export const themes: Record<string, Theme> = {
   midnight: {
     name: 'Midnight',
     bg: 'bg-[#1a1b26]',
+    surface: 'bg-[#1f2335]',
+    surfaceHighlight: 'bg-[#24283b]',
+    shadow: 'shadow-[6px_6px_0px_0px_#16161e]',
     text: 'text-[#a9b1d6]',
     textMuted: 'text-[#565f89]',
     accent: '#7aa2f7',
@@ -82,6 +94,9 @@ export const themes: Record<string, Theme> = {
   forest: {
     name: 'Forest',
     bg: 'bg-[#1a1b26]',
+    surface: 'bg-[#24283b]',
+    surfaceHighlight: 'bg-[#2f3549]',
+    shadow: 'shadow-[6px_6px_0px_0px_#16161e]',
     text: 'text-[#c0caf5]',
     textMuted: 'text-[#565f89]',
     accent: '#9ece6a',
@@ -97,6 +112,9 @@ export const themes: Record<string, Theme> = {
   terminal: {
     name: 'Terminal',
     bg: `bg-[${terminalPalette.bg}]`,
+    surface: `bg-[${terminalPalette.surface}]`,
+    surfaceHighlight: `bg-[${terminalPalette.surfaceHighlight}]`,
+    shadow: `shadow-[4px_4px_0px_0px_${terminalPalette.shadow}]`,
     text: `text-[${terminalPalette.text}]`,
     textMuted: `text-[${terminalPalette.textMuted}]`,
     accent: terminalPalette.green,

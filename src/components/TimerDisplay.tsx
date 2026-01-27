@@ -29,11 +29,11 @@ export const TimerDisplay = ({ timeLeft, initialDuration, mode, currentTheme }: 
               border: `4px solid ${theme.border.replace('border-[', '').replace(']', '')}`,
               boxShadow: `
                 inset -2px -2px 0 0 rgba(0,0,0,0.25),
-                inset 2px 2px 0 0 rgba(255,255,255,0.08),
+                inset 2px 2px 0 0 rgba(0,0,0,0.1),
                 2px 2px 0 0 rgba(0,0,0,0.15)
               `,
               imageRendering: 'pixelated',
-              textShadow: '2px 2px 0 rgba(0,0,0,0.3)',
+              textShadow: '0 0 8px rgba(0, 255, 65, 0.5)',
             }}
           >
             {digit}

@@ -1,15 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { defaultSettings, type Settings } from "../utils/themes";
+import { defaultSettings, type Settings, themes } from "../utils/themes";
 import { playNotificationSound } from "../utils/sounds";
 
 export type TimerMode = "work" | "shortBreak" | "longBreak";
 
+const VALID_THEMES = Object.keys(themes);
+
 export const useTimer = () => {
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem("pomodoro-settings");
-    return saved
-      ? { ...defaultSettings, ...JSON.parse(saved) }
-      : defaultSettings;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Validate theme, fallback to default if invalid
+      if (!VALID_THEMES.includes(parsed.theme)) {
+        parsed.theme = defaultSettings.theme;
+      }
+      return { ...defaultSettings, ...parsed };
+    }
+    return defaultSettings;
   });
 
   const [mode, setMode] = useState<TimerMode>("work");
