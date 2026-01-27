@@ -18,4 +18,5 @@ export {
   Volume2,
   VolumeX,
   X,
+  History,
 } from 'lucide-react';

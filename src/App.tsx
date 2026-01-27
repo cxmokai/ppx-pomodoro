@@ -4,10 +4,17 @@ import { TimerDisplay } from './components/TimerDisplay';
 import { Controls } from './components/Controls';
 import { ModeIndicator } from './components/ModeIndicator';
 import { TaskInput } from './components/TaskInput';
-import { CompletedQuests } from './components/CompletedQuests';
+import { CompletedQuestsDrawer } from './components/CompletedQuestsDrawer';
 import { SettingsModal } from './components/SettingsModal';
 import { themes } from './utils/themes';
-import { Settings, Sun, Moon, Diamond, Timer } from './components/icons';
+import {
+  Settings,
+  Sun,
+  Moon,
+  Diamond,
+  Timer,
+  History,
+} from './components/icons';
 
 function App() {
   const {
@@ -24,6 +31,7 @@ function App() {
   } = useTimer();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [questUpdateTrigger, setQuestUpdateTrigger] = useState(0);
 
   useEffect(() => {
@@ -47,6 +55,7 @@ function App() {
           break;
         case 'escape':
           setIsSettingsOpen(false);
+          setIsDrawerOpen(false);
           break;
       }
     };
@@ -148,24 +157,33 @@ function App() {
         </div>
 
         {/* Task Input */}
-        <div className={`p-5 brutal-card mb-6 ${theme.surface}`}>
+        <div className={`p-5 brutal-card ${theme.surface}`}>
           <div
-            className={`flex items-center gap-2 mb-3 ${theme.textMuted} no-select`}
+            className={`flex items-center justify-between mb-3 ${theme.textMuted}`}
           >
-            <Timer className="w-5 h-5" />
-            <span className="text-sm">CURRENT QUEST</span>
+            <div className="flex items-center gap-2">
+              <Timer className="w-5 h-5" />
+              <span className="text-sm no-select">CURRENT QUEST</span>
+            </div>
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className={`brutal-btn px-3 py-1 text-xs flex items-center gap-2 cursor-pointer no-select`}
+              style={{
+                background: theme.surfaceHighlight
+                  .replace('bg-[', '')
+                  .replace(']', ''),
+                color: theme.text.replace('text-[', '').replace(']', ''),
+              }}
+            >
+              <History className="w-4 h-4" />
+              <span>COMPLETED</span>
+            </button>
           </div>
           <TaskInput
             currentTheme={settings.theme}
             onQuestComplete={handleQuestComplete}
           />
         </div>
-
-        {/* Completed Quests */}
-        <CompletedQuests
-          currentTheme={settings.theme}
-          triggerUpdate={questUpdateTrigger}
-        />
       </div>
 
       <SettingsModal
@@ -174,6 +192,13 @@ function App() {
         settings={settings}
         updateSettings={updateSettings}
         currentTheme={settings.theme}
+      />
+
+      <CompletedQuestsDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        currentTheme={settings.theme}
+        triggerUpdate={questUpdateTrigger}
       />
     </div>
   );
