@@ -18,6 +18,7 @@ import {
   Sun,
   Moon,
   History,
+  Timer,
   Target,
 } from './components/icons';
 
@@ -88,7 +89,7 @@ function AppContent() {
           <h1
             className={`text-2xl tracking-tight ${theme.text} no-select flex items-center gap-2`}
           >
-            <Target className="w-4 h-4" />
+            <Timer className="w-4 h-4" />
             PPX POMODORO
             {todayCompletedPomodoros > 0 && (
               <span
