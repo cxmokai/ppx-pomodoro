@@ -105,7 +105,7 @@ function AppContent() {
             )}
           </h1>
           <div className="flex items-center gap-3">
-            <AuthButton theme={theme} />
+            <AuthButton theme={theme} currentTheme={settings.theme} />
             <button
               onClick={() =>
                 updateDataSettings({
