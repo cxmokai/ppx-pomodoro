@@ -1,6 +1,6 @@
 # PPX Pomodoro
 
-A beautiful, feature-rich Pomodoro timer web application built with React, TypeScript, and Tailwind CSS, inspired by the [Zed](https://zed.dev/) code editor design.
+A beautiful, feature-rich Pomodoro timer web application built with React, TypeScript, and Tailwind CSS.
 
 ![PPX Pomodoro](https://img.shields.io/badge/version-v1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -38,14 +38,14 @@ A beautiful, feature-rich Pomodoro timer web application built with React, TypeS
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Space` / `K` | Start/Pause timer |
-| `R` | Reset timer |
-| `S` | Skip to next mode |
-| `T` | Toggle settings |
-| `H` | Toggle history |
-| `Esc` | Close modals/drawers |
+| Shortcut      | Action               |
+| ------------- | -------------------- |
+| `Space` / `K` | Start/Pause timer    |
+| `R`           | Reset timer          |
+| `S`           | Skip to next mode    |
+| `T`           | Toggle settings      |
+| `H`           | Toggle history       |
+| `Esc`         | Close modals/drawers |
 
 ### Themes
 
