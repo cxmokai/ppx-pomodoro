@@ -23,14 +23,11 @@ const loadTimerState = (): TimerState | null => {
   const saved = sessionStorage.getItem(TIMER_STORAGE_KEY);
   if (saved) {
     try {
-      const parsed = JSON.parse(saved);
-      console.log('[Timer] Loaded state from sessionStorage:', parsed);
-      return parsed;
+      return JSON.parse(saved);
     } catch {
       return null;
     }
   }
-  console.log('[Timer] No saved state found in sessionStorage');
   return null;
 };
 
@@ -93,13 +90,10 @@ export const useTimer = () => {
     const saved = loadTimerState();
 
     if (saved) {
-      console.log('[Timer] Restoring from saved state:', saved);
-
       // If timer is running, restore with elapsed time calculation
       if (saved.isRunning && saved.sessionStartTime) {
         const elapsed = Math.floor((Date.now() - saved.sessionStartTime) / 1000);
         const restoredTimeLeft = Math.max(0, saved.initialTimeLeft - elapsed);
-        console.log('[Timer] Running timer - elapsed:', elapsed, 'restoredTimeLeft:', restoredTimeLeft);
 
         return {
           mode: saved.mode,
@@ -113,7 +107,6 @@ export const useTimer = () => {
 
       // If timer is not running, use saved initialTimeLeft (which is the paused timeLeft)
       // Clear sessionStartTime since the timer is paused
-      console.log('[Timer] Paused timer - restoring timeLeft:', saved.initialTimeLeft);
       return {
         mode: saved.mode,
         timeLeft: saved.initialTimeLeft,
@@ -126,7 +119,6 @@ export const useTimer = () => {
 
     // No saved state, use current settings (might be default or loaded from Firebase)
     const defaultDuration = settings.workDuration * 60;
-    console.log('[Timer] No saved state, using default duration:', defaultDuration);
     return {
       mode: 'work' as TimerMode,
       timeLeft: defaultDuration,
@@ -154,10 +146,9 @@ export const useTimer = () => {
       mode,
       isRunning,
       sessionCount,
-      sessionStartTime: sessionStartTimeRef.current,
+      sessionStartTime: isRunning ? sessionStartTimeRef.current : null,
       initialTimeLeft: isRunning ? initialDuration : timeLeft,
     };
-    console.log('[Timer] Saving state:', stateToSave);
     saveTimerState(stateToSave);
   }, [mode, isRunning, sessionCount, initialDuration, timeLeft]);
 
