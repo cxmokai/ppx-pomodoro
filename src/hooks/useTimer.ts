@@ -76,17 +76,14 @@ export const useTimer = () => {
         lastKnownSettingsRef.current.longBreakDuration !== settings.longBreakDuration) {
       // User changed settings, clear saved state and reset timer
       clearTimerState();
-      setMode((currentMode) => {
-        const newDuration = getModeDuration(currentMode);
-        setTimeLeft(newDuration);
-        setInitialDuration(newDuration);
-        setIsRunning(false);
-        sessionStartTimeRef.current = null;
-        return currentMode;
-      });
+      const newDuration = settings.workDuration * 60; // Use work duration as default
+      setTimeLeft(newDuration);
+      setInitialDuration(newDuration);
+      setIsRunning(false);
+      sessionStartTimeRef.current = null;
       lastKnownSettingsRef.current = settings;
     }
-  }, [settings.workDuration, settings.shortBreakDuration, settings.longBreakDuration, getModeDuration]);
+  }, [settings.workDuration, settings.shortBreakDuration, settings.longBreakDuration]);
 
   // Restore state from sessionStorage on mount
   const getInitialState = () => {
