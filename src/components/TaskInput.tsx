@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Check } from './icons';
 import { themes } from '../utils/themes';
 import type { CompletedQuest } from '../utils/themes';
+import { useData } from '../contexts/DataContext';
 
 interface TaskInputProps {
   currentTheme: string;
@@ -12,46 +13,36 @@ export const TaskInput = ({
   currentTheme,
   onQuestComplete,
 }: TaskInputProps) => {
-  const [task, setTask] = useState(() => {
-    return localStorage.getItem('pomodoro-task') || '';
-  });
+  const { currentTask, setCurrentTask, addCompletedQuest } = useData();
   const [isEditing, setIsEditing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const theme = themes[currentTheme];
 
   useEffect(() => {
-    localStorage.setItem('pomodoro-task', task);
-  }, [task]);
+    // Sync with localStorage for fallback
+    localStorage.setItem('pomodoro-task', currentTask);
+  }, [currentTask]);
 
   const handleComplete = () => {
-    if (!task.trim()) return;
+    if (!currentTask.trim()) return;
 
     setIsCompleted(true);
 
     // Save to completed quests
     const completedQuest: CompletedQuest = {
       id: Date.now().toString(),
-      title: task,
+      title: currentTask,
       completedAt: Date.now(),
     };
 
-    // Get existing completed quests
-    const existing = localStorage.getItem('pomodoro-completed-quests');
-    const completedQuests: CompletedQuest[] = existing
-      ? JSON.parse(existing)
-      : [];
-    completedQuests.unshift(completedQuest);
+    addCompletedQuest(completedQuest);
 
-    // Keep only last 50 quests
-    const trimmed = completedQuests.slice(0, 50);
-    localStorage.setItem('pomodoro-completed-quests', JSON.stringify(trimmed));
-
-    // Notify parent
+    // Notify parent (for backward compatibility)
     onQuestComplete?.(completedQuest);
 
     // Clear after animation
     setTimeout(() => {
-      setTask('');
+      setCurrentTask('');
       setIsCompleted(false);
       localStorage.removeItem('pomodoro-task');
     }, 1500);
@@ -63,8 +54,8 @@ export const TaskInput = ({
         {isEditing ? (
           <input
             type="text"
-            value={task}
-            onChange={(e) => setTask(e.target.value)}
+            value={currentTask}
+            onChange={(e) => setCurrentTask(e.target.value)}
             onBlur={() => setIsEditing(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -83,13 +74,13 @@ export const TaskInput = ({
           <div
             onClick={() => !isCompleted && setIsEditing(true)}
             className={`w-full px-4 py-3 cursor-pointer brutal-btn no-select flex items-center ${
-              task ? theme.surfaceHighlight : theme.bg
+              currentTask ? theme.surfaceHighlight : theme.bg
             } ${isCompleted ? 'opacity-50' : ''}`}
             style={{
-              background: task
+              background: currentTask
                 ? theme.surfaceHighlight.replace('bg-[', '').replace(']', '')
                 : theme.bg.replace('bg-[', '').replace(']', ''),
-              color: task
+              color: currentTask
                 ? theme.text.replace('text-[', '').replace(']', '')
                 : theme.textMuted.replace('text-[', '').replace(']', ''),
             }}
@@ -99,14 +90,14 @@ export const TaskInput = ({
                 textDecoration: isCompleted ? 'line-through' : 'none',
               }}
             >
-              {task || 'Click to add quest...'}
+              {currentTask || 'Click to add quest...'}
             </span>
           </div>
         )}
       </div>
 
       {/* Complete button - only show when there's a task */}
-      {task && !isEditing && (
+      {currentTask && !isEditing && (
         <button
           onClick={handleComplete}
           disabled={isCompleted}

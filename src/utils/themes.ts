@@ -90,6 +90,7 @@ export interface Settings {
   longBreakInterval: number;
   soundEnabled: boolean;
   theme: string;
+  timezone?: Timezone;
 }
 
 export interface CompletedQuest {
@@ -98,6 +99,98 @@ export interface CompletedQuest {
   completedAt: number;
 }
 
+// ============================================================================
+// Firebase Types
+// ============================================================================
+
+export interface PomodoroSession {
+  id: string;
+  startTime: number;
+  endTime?: number;
+  type: 'work' | 'shortBreak' | 'longBreak';
+  taskId?: string;
+  completed: boolean;
+}
+
+export interface PomodoroTask {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: number;
+  completedAt?: number;
+}
+
+export interface PomodoroSettings {
+  workDuration: number;
+  shortBreakDuration: number;
+  longBreakDuration: number;
+  longBreakInterval: number;
+  soundEnabled: boolean;
+  theme: string;
+  timezone?: Timezone;
+}
+
+export interface PomodoroData {
+  sessions: PomodoroSession[];
+  tasks: PomodoroTask[];
+  settings: PomodoroSettings;
+  lastUpdated: number;
+}
+
+export interface FirestoreUserData {
+  sessions: PomodoroSession[];
+  tasks: PomodoroTask[];
+  settings: PomodoroSettings;
+  updatedAt: number;
+}
+
+// Account Linking Types
+import type { OAuthCredential } from 'firebase/auth';
+
+export interface PendingLinkCredential {
+  credential: OAuthCredential;
+  email: string;
+  attemptedProvider: string;
+  existingProvider: string;
+}
+
+// Timezone Types
+export const TIMEZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Los_Angeles',
+  'America/Chicago',
+  'America/Denver',
+  'America/Phoenix',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Toronto',
+  'America/Vancouver',
+  'America/Winnipeg',
+  'America/Edmonton',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Madrid',
+  'Europe/Rome',
+  'Europe/Amsterdam',
+  'Europe/Stockholm',
+  'Europe/Zurich',
+  'Europe/Moscow',
+  'Europe/Istanbul',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  'Asia/Singapore',
+  'Asia/Hong_Kong',
+  'Australia/Sydney',
+  'Australia/Melbourne',
+] as const;
+
+export type Timezone = (typeof TIMEZONES)[number];
+
 export const defaultSettings: Settings = {
   workDuration: 25,
   shortBreakDuration: 5,
@@ -105,4 +198,5 @@ export const defaultSettings: Settings = {
   longBreakInterval: 4,
   soundEnabled: true,
   theme: 'dark',
+  timezone: 'America/Los_Angeles',
 };

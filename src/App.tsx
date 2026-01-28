@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useTimer } from './hooks/useTimer';
+import { useData } from './contexts/DataContext';
 import { TimerDisplay } from './components/TimerDisplay';
 import { Controls } from './components/Controls';
 import { ModeIndicator } from './components/ModeIndicator';
 import { TaskInput } from './components/TaskInput';
 import { CompletedQuestsDrawer } from './components/CompletedQuestsDrawer';
+import { SessionHistoryDrawer } from './components/SessionHistoryDrawer';
 import { SettingsModal } from './components/SettingsModal';
+import { AuthButton } from './components/AuthButton';
+import { AuthProvider } from './contexts/AuthContext';
+import { AccountLinkingProvider } from './contexts/AccountLinkingContext';
+import { DataProvider } from './contexts/DataContext';
 import { themes } from './utils/themes';
 import {
   Settings,
@@ -14,9 +20,10 @@ import {
   Diamond,
   Timer,
   History,
+  Clock,
 } from './components/icons';
 
-function App() {
+function AppContent() {
   const {
     timeLeft,
     mode,
@@ -27,12 +34,12 @@ function App() {
     toggleTimer,
     resetTimer,
     skipMode,
-    updateSettings,
   } = useTimer();
+  const { updateSettings: updateDataSettings } = useData();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [questUpdateTrigger, setQuestUpdateTrigger] = useState(0);
+  const [isSessionHistoryOpen, setIsSessionHistoryOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -53,9 +60,13 @@ function App() {
         case 't':
           setIsSettingsOpen((prev) => !prev);
           break;
+        case 'h':
+          setIsSessionHistoryOpen((prev) => !prev);
+          break;
         case 'escape':
           setIsSettingsOpen(false);
           setIsDrawerOpen(false);
+          setIsSessionHistoryOpen(false);
           break;
       }
     };
@@ -65,10 +76,6 @@ function App() {
   }, [toggleTimer, resetTimer, skipMode]);
 
   const theme = themes[settings.theme];
-
-  const handleQuestComplete = () => {
-    setQuestUpdateTrigger((prev) => prev + 1);
-  };
 
   return (
     <div
@@ -97,12 +104,27 @@ function App() {
           </h1>
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setIsSessionHistoryOpen(true)}
+              className={`brutal-btn text-sm px-3 py-2 h-10 flex items-center gap-2 cursor-pointer no-select`}
+              style={{
+                background: theme.surfaceHighlight
+                  .replace('bg-[', '')
+                  .replace(']', ''),
+                color: theme.text.replace('text-[', '').replace(']', ''),
+              }}
+              title="Session History (H)"
+            >
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">HISTORY</span>
+            </button>
+            <AuthButton theme={theme} />
+            <button
               onClick={() =>
-                updateSettings({
+                updateDataSettings({
                   theme: settings.theme === 'dark' ? 'light' : 'dark',
                 })
               }
-              className={`brutal-btn text-sm px-3 py-2 flex items-center justify-center cursor-pointer no-select`}
+              className={`brutal-btn text-sm px-3 py-2 h-10 flex items-center justify-center cursor-pointer no-select`}
               style={{
                 background: theme.surfaceHighlight
                   .replace('bg-[', '')
@@ -119,7 +141,7 @@ function App() {
             </button>
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className={`brutal-btn text-sm px-3 py-2 flex items-center gap-2 cursor-pointer no-select`}
+              className={`brutal-btn text-sm px-3 py-2 h-10 flex items-center gap-2 cursor-pointer no-select`}
               style={{
                 background: theme.surfaceHighlight
                   .replace('bg-[', '')
@@ -179,18 +201,13 @@ function App() {
               <span>COMPLETED</span>
             </button>
           </div>
-          <TaskInput
-            currentTheme={settings.theme}
-            onQuestComplete={handleQuestComplete}
-          />
+          <TaskInput currentTheme={settings.theme} />
         </div>
       </div>
 
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        settings={settings}
-        updateSettings={updateSettings}
         currentTheme={settings.theme}
       />
 
@@ -198,9 +215,26 @@ function App() {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         currentTheme={settings.theme}
-        triggerUpdate={questUpdateTrigger}
+      />
+
+      <SessionHistoryDrawer
+        isOpen={isSessionHistoryOpen}
+        onClose={() => setIsSessionHistoryOpen(false)}
+        currentTheme={settings.theme}
       />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AccountLinkingProvider>
+        <DataProvider>
+          <AppContent />
+        </DataProvider>
+      </AccountLinkingProvider>
+    </AuthProvider>
   );
 }
 

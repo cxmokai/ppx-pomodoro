@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 import { Trash2, X } from './icons';
 import { themes } from '../utils/themes';
-import type { CompletedQuest } from '../utils/themes';
+import { useData } from '../contexts/DataContext';
 
 interface CompletedQuestsDrawerProps {
   isOpen: boolean;
@@ -14,23 +13,9 @@ export const CompletedQuestsDrawer = ({
   isOpen,
   onClose,
   currentTheme,
-  triggerUpdate,
 }: CompletedQuestsDrawerProps) => {
-  const [quests, setQuests] = useState<CompletedQuest[]>([]);
+  const { completedQuests, deleteCompletedQuest } = useData();
   const theme = themes[currentTheme];
-
-  const loadQuests = () => {
-    const existing = localStorage.getItem('pomodoro-completed-quests');
-    if (existing) {
-      const parsed: CompletedQuest[] = JSON.parse(existing);
-      setQuests(parsed);
-    }
-  };
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadQuests();
-  }, [triggerUpdate]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -42,19 +27,6 @@ export const CompletedQuestsDrawer = ({
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
     return date.toLocaleDateString();
-  };
-
-  const deleteQuest = (id: string) => {
-    const existing = localStorage.getItem('pomodoro-completed-quests');
-    if (existing) {
-      const parsed: CompletedQuest[] = JSON.parse(existing);
-      const filtered = parsed.filter((q) => q.id !== id);
-      localStorage.setItem(
-        'pomodoro-completed-quests',
-        JSON.stringify(filtered)
-      );
-      setQuests(filtered);
-    }
   };
 
   return (
@@ -81,7 +53,7 @@ export const CompletedQuestsDrawer = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b-4">
           <h2 className={`text-lg ${theme.text} no-select`}>
-            COMPLETED QUESTS ({quests.length})
+            COMPLETED QUESTS ({completedQuests.length})
           </h2>
           <button
             onClick={onClose}
@@ -102,13 +74,13 @@ export const CompletedQuestsDrawer = ({
           className="p-6 overflow-y-auto"
           style={{ maxHeight: 'calc(100vh - 100px)' }}
         >
-          {quests.length === 0 ? (
+          {completedQuests.length === 0 ? (
             <p className={`text-sm ${theme.textMuted} text-center no-select`}>
               No completed quests yet
             </p>
           ) : (
             <div className="space-y-3">
-              {quests.map((quest, index) => (
+              {completedQuests.map((quest, index) => (
                 <div
                   key={quest.id}
                   className={`flex items-center justify-between p-4 brutal-card ${theme.surfaceHighlight} transition-all duration-200`}
@@ -133,7 +105,7 @@ export const CompletedQuestsDrawer = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => deleteQuest(quest.id)}
+                    onClick={() => deleteCompletedQuest(quest.id)}
                     className={`ml-3 px-3 py-2 brutal-btn cursor-pointer no-select`}
                     style={{
                       background: theme.surfaceHighlight

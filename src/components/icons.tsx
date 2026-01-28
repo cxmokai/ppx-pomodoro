@@ -19,4 +19,8 @@ export {
   VolumeX,
   X,
   History,
+  LogIn,
+  LogOut,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';

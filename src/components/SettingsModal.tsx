@@ -1,23 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Volume2, VolumeX, X, Settings as SettingsIcon } from './icons';
-import { themes, type Settings } from '../utils/themes';
+import { themes, TIMEZONES, type Timezone } from '../utils/themes';
+import { getTimezoneName } from '../utils/timezone';
+import { useData } from '../contexts/DataContext';
 
 interface SettingsProps {
   isOpen: boolean;
   onClose: () => void;
-  settings: Settings;
-  updateSettings: (newSettings: Partial<Settings>) => void;
   currentTheme: string;
 }
 
 export const SettingsModal = ({
   isOpen,
   onClose,
-  settings,
-  updateSettings,
   currentTheme,
 }: SettingsProps) => {
-  const [localSettings, setLocalSettings] = useState<Settings>(settings);
+  const { settings, updateSettings } = useData();
+  const [localSettings, setLocalSettings] = useState(settings);
   const theme = themes[currentTheme];
 
   useEffect(() => {
@@ -25,7 +24,7 @@ export const SettingsModal = ({
   }, [settings]);
 
   const handleChange = (
-    key: keyof Settings,
+    key: string,
     value: number | boolean | string
   ) => {
     const newSettings = { ...localSettings, [key]: value };
@@ -321,6 +320,46 @@ export const SettingsModal = ({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Timezone Selector */}
+          <div
+            className="p-4 border-4"
+            style={{
+              borderColor: '#000000',
+              background: theme.bg.replace('bg-[', '').replace(']', ''),
+            }}
+          >
+            <h3
+              className="text-sm mb-3 no-select"
+              style={{
+                color: theme.text.replace('text-[', '').replace(']', ''),
+              }}
+            >
+              TIMEZONE
+            </h3>
+            <select
+              value={localSettings.timezone || 'America/Los_Angeles'}
+              onChange={(e) => handleChange('timezone', e.target.value as Timezone)}
+              className={`w-full px-3 py-2 text-sm brutal-input no-select`}
+              style={{
+                background: theme.bg.replace('bg-[', '').replace(']', ''),
+                color: theme.text.replace('text-[', '').replace(']', ''),
+                border: '2px solid #000000',
+              }}
+            >
+              {TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>
+                  {getTimezoneName(tz)}
+                </option>
+              ))}
+            </select>
+            <p
+              className="text-xs mt-2 no-select"
+              style={{ color: theme.textMuted.replace('text-[', '').replace(']', '') }}
+            >
+              Used for accurate daily statistics
+            </p>
           </div>
         </div>
       </div>

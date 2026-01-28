@@ -1,25 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { defaultSettings, type Settings, themes } from '../utils/themes';
+import type { Settings, PomodoroSession } from '../utils/themes';
 import { playNotificationSound } from '../utils/sounds';
+import { useData } from '../contexts/DataContext';
 
 export type TimerMode = 'work' | 'shortBreak' | 'longBreak';
 
-const VALID_THEMES = Object.keys(themes);
-
 export const useTimer = () => {
-  const [settings, setSettings] = useState<Settings>(() => {
-    const saved = localStorage.getItem('pomodoro-settings');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Validate theme, fallback to default if invalid
-      if (!VALID_THEMES.includes(parsed.theme)) {
-        parsed.theme = defaultSettings.theme;
-      }
-      return { ...defaultSettings, ...parsed };
-    }
-    return defaultSettings;
-  });
-
+  const { settings, updateSettings: updateDataSettings, sessions, setSessions } = useData();
   const [mode, setMode] = useState<TimerMode>('work');
   const [timeLeft, setTimeLeft] = useState(settings.workDuration * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -29,6 +16,7 @@ export const useTimer = () => {
   );
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartTimeRef = useRef<number | null>(null);
 
   const getModeDuration = useCallback(
     (currentMode: TimerMode): number => {
@@ -51,10 +39,6 @@ export const useTimer = () => {
   );
 
   useEffect(() => {
-    localStorage.setItem('pomodoro-settings', JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
     const duration = getModeDuration(mode);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimeLeft(duration);
@@ -62,19 +46,40 @@ export const useTimer = () => {
   }, [mode, getModeDuration]);
 
   const startTimer = useCallback(() => {
+    // Record session start time for work sessions
+    if (mode === 'work' && !sessionStartTimeRef.current) {
+      sessionStartTimeRef.current = Date.now();
+    }
     setIsRunning(true);
-  }, []);
+  }, [mode]);
 
   const pauseTimer = useCallback(() => {
     setIsRunning(false);
   }, []);
 
+  // Save incomplete session when user skips
+  const saveIncompleteSession = useCallback((currentMode: TimerMode) => {
+    const startTime = sessionStartTimeRef.current;
+    if (startTime && currentMode === 'work') {
+      const incompleteSession: PomodoroSession = {
+        id: `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        startTime,
+        endTime: Date.now(),
+        type: currentMode,
+        completed: false,
+      };
+      setSessions([incompleteSession, ...sessions]);
+      sessionStartTimeRef.current = null;
+    }
+  }, [sessions, setSessions]);
+
   const resetTimer = useCallback(() => {
+    saveIncompleteSession(mode);
     setIsRunning(false);
     const duration = getModeDuration(mode);
     setTimeLeft(duration);
     setInitialDuration(duration);
-  }, [mode, getModeDuration]);
+  }, [mode, getModeDuration, saveIncompleteSession]);
 
   const toggleTimer = useCallback(() => {
     if (isRunning) {
@@ -85,6 +90,7 @@ export const useTimer = () => {
   }, [isRunning, startTimer, pauseTimer]);
 
   const skipMode = useCallback(() => {
+    saveIncompleteSession(mode);
     setIsRunning(false);
     if (mode === 'work') {
       const newSessionCount = sessionCount + 1;
@@ -107,17 +113,18 @@ export const useTimer = () => {
     const duration = getModeDuration(newMode);
     setTimeLeft(duration);
     setInitialDuration(duration);
-  }, [mode, sessionCount, settings, getModeDuration]);
+  }, [mode, sessionCount, settings, getModeDuration, saveIncompleteSession]);
 
   const switchMode = useCallback(
     (newMode: TimerMode) => {
+      saveIncompleteSession(mode);
       setIsRunning(false);
       setMode(newMode);
       const duration = getModeDuration(newMode);
       setTimeLeft(duration);
       setInitialDuration(duration);
     },
-    [getModeDuration]
+    [getModeDuration, mode, saveIncompleteSession]
   );
 
   useEffect(() => {
@@ -131,6 +138,20 @@ export const useTimer = () => {
 
       if (settings.soundEnabled) {
         playNotificationSound();
+      }
+
+      // Save completed session to history
+      const startTime = sessionStartTimeRef.current;
+      if (startTime) {
+        const newSession: PomodoroSession = {
+          id: `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          startTime,
+          endTime: Date.now(),
+          type: mode,
+          completed: true,
+        };
+        setSessions([newSession, ...sessions]);
+        sessionStartTimeRef.current = null;
       }
 
       if (mode === 'work') {
@@ -170,7 +191,7 @@ export const useTimer = () => {
   };
 
   const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
+    updateDataSettings(newSettings);
   };
 
   return {
