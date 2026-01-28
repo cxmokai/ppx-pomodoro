@@ -6,7 +6,7 @@ import { useData } from '../contexts/DataContext';
 export type TimerMode = 'work' | 'shortBreak' | 'longBreak';
 
 export const useTimer = () => {
-  const { settings, updateSettings: updateDataSettings, sessions, setSessions } = useData();
+  const { settings, updateSettings: updateDataSettings, sessions, setSessions, incrementTodayPomodoroCount } = useData();
   const [mode, setMode] = useState<TimerMode>('work');
   const [timeLeft, setTimeLeft] = useState(settings.workDuration * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -146,6 +146,7 @@ export const useTimer = () => {
       if (mode === 'work') {
         const newSessionCount = sessionCount + 1;
         setSessionCount(newSessionCount);
+        incrementTodayPomodoroCount();
 
         if (newSessionCount % settings.longBreakInterval === 0) {
           setMode('longBreak');
