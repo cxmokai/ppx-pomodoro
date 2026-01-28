@@ -123,8 +123,9 @@ class SyncManager {
         const docRef = doc(db, COLLECTION, getUserId());
         await setDoc(docRef, {
           sessions: dataToWrite.sessions || [],
-          tasks: dataToWrite.tasks || [],
+          quests: dataToWrite.quests || [],
           settings: dataToWrite.settings,
+          dailyRecords: dataToWrite.dailyRecords || {},
           updatedAt: serverTimestamp(),
         });
 
@@ -207,8 +208,9 @@ export const loadDataFromFirestore = async (): Promise<PomodoroData | null> => {
       const data = docSnap.data();
       return {
         sessions: data.sessions || [],
-        tasks: data.tasks || [],
+        quests: data.quests || [],
         settings: data.settings || getDefaultSettings(),
+        dailyRecords: data.dailyRecords || {},
         lastUpdated: Date.now(),
       };
     }
@@ -238,8 +240,9 @@ export const subscribeToData = (
           // Use Firestore's updatedAt timestamp to avoid infinite loop
           const cloudData: PomodoroData = {
             sessions: data.sessions || [],
-            tasks: data.tasks || [],
+            quests: data.quests || [],
             settings: data.settings || getDefaultSettings(),
+            dailyRecords: data.dailyRecords || {},
             lastUpdated: data.updatedAt ? data.updatedAt.toMillis() : Date.now(),
           };
           saveDataToLocalStorage(cloudData);
@@ -261,20 +264,27 @@ const loadDataFromLocalStorage = (): PomodoroData => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      // Add dailyRecords if migrating from old format
+      if (!parsed.dailyRecords) {
+        parsed.dailyRecords = {};
+      }
+      return parsed;
     }
     return {
       sessions: [],
-      tasks: [],
+      quests: [],
       settings: getDefaultSettings(),
+      dailyRecords: {},
       lastUpdated: Date.now(),
     };
   } catch (error) {
     console.error('Failed to load from localStorage:', error);
     return {
       sessions: [],
-      tasks: [],
+      quests: [],
       settings: getDefaultSettings(),
+      dailyRecords: {},
       lastUpdated: Date.now(),
     };
   }
@@ -296,7 +306,7 @@ function getDefaultSettings(): PomodoroSettings {
     longBreakInterval: 4,
     soundEnabled: true,
     theme: 'dark',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Asia/Shanghai',
   };
 }
 

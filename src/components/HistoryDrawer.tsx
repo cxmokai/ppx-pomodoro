@@ -1,9 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Trash2, X, Search, CheckCircle2, History } from './icons';
 import { ConfirmModal } from './ConfirmModal';
 import { themes } from '../utils/themes';
-import type { CompletedQuest, PomodoroSession } from '../utils/themes';
+import type { PomodoroQuest, PomodoroSession } from '../utils/themes';
 import { useData } from '../contexts/DataContext';
+import {
+  getDateLabel,
+  getDateRangeForLoading,
+  getUserLocalDate,
+} from '../utils/dateUtils';
 
 interface HistoryDrawerProps {
   isOpen: boolean;
@@ -21,26 +26,6 @@ const formatTime = (timestamp: number): string => {
   });
 };
 
-// Get date key for grouping
-const getDateKey = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today';
-  } else if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
-  } else {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
-    });
-  }
-};
-
 // Get relative time
 const getRelativeTime = (timestamp: number): string => {
   const date = new Date(timestamp);
@@ -54,57 +39,40 @@ const getRelativeTime = (timestamp: number): string => {
   return date.toLocaleDateString();
 };
 
-// Filter and group quests by date
-const groupQuestsByDate = (
-  quests: CompletedQuest[],
-  daysToShow: number = 10
-): Map<string, CompletedQuest[]> => {
-  const grouped = new Map<string, CompletedQuest[]>();
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-
-  // Calculate cutoff date (daysToShow days ago, excluding today)
-  const cutoffDate = new Date(today);
-  cutoffDate.setDate(cutoffDate.getDate() - daysToShow);
-  cutoffDate.setHours(0, 0, 0, 0);
-
-  // Filter and group
-  quests.forEach((quest) => {
-    const questDate = new Date(quest.completedAt);
-
-    // Skip today's quests (user wants to exclude today)
-    if (questDate.toDateString() === today.toDateString()) {
-      return;
-    }
-
-    // Skip quests older than cutoff
-    if (questDate < cutoffDate) {
-      return;
-    }
-
-    const dateKey = getDateKey(quest.completedAt);
-
-    if (!grouped.has(dateKey)) {
-      grouped.set(dateKey, []);
-    }
-    grouped.get(dateKey)!.push(quest);
-  });
-
-  return grouped;
-};
+const INITIAL_DAYS_TO_LOAD = 7; // 1 week
+const LOAD_MORE_DAYS = 7; // Load 1 more week at a time
 
 export const HistoryDrawer = ({
   isOpen,
   onClose,
   currentTheme,
 }: HistoryDrawerProps) => {
-  const { completedQuests, deleteCompletedQuest, sessions } = useData();
+  const {
+    completedQuests,
+    deletePomodoroQuest,
+    sessions,
+    settings,
+    getPomodoroQuestsByDateRange,
+  } = useData();
   const theme = themes[currentTheme];
+  const timezone = settings.timezone || 'Asia/Shanghai';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredQuests, setFilteredQuests] = useState<CompletedQuest[]>([]);
-  const [questToDelete, setQuestToDelete] = useState<CompletedQuest | null>(null);
-  const daysToShow = 10;
+  const [filteredQuests, setFilteredQuests] = useState<PomodoroQuest[]>([]);
+  const [questToDelete, setQuestToDelete] = useState<PomodoroQuest | null>(null);
+  const [daysLoaded, setDaysLoaded] = useState(INITIAL_DAYS_TO_LOAD);
+  const [hasMore, setHasMore] = useState(true);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset state when drawer opens
+  useEffect(() => {
+    if (isOpen) {
+      setDaysLoaded(INITIAL_DAYS_TO_LOAD);
+      setHasMore(true);
+      setSearchQuery('');
+    }
+  }, [isOpen]);
 
   // Debounced search
   useEffect(() => {
@@ -122,34 +90,140 @@ export const HistoryDrawer = ({
     return () => clearTimeout(handler);
   }, [searchQuery, completedQuests]);
 
+  // Get date range for currently loaded days
+  const getLoadedDateRange = useCallback((): { startDate: string; endDate: string } => {
+    const endDate = getUserLocalDate(timezone); // Today
+    const startDate = getDateRangeForLoading(daysLoaded, timezone)[daysLoaded - 1]; // Oldest loaded day
+
+    return { startDate, endDate };
+  }, [daysLoaded, timezone]);
+
+  // Load quests for current date range
+  const loadQuests = useCallback((): { grouped: Map<string, PomodoroQuest[]>; allQuests: PomodoroQuest[] } => {
+    const { startDate, endDate } = getLoadedDateRange();
+    const questsInRange = getPomodoroQuestsByDateRange(startDate, endDate);
+
+    // Exclude today's quests
+    const today = getUserLocalDate(timezone);
+    const questsExcludingToday = questsInRange.filter((quest) => {
+      const completedAt = quest.completedAt || quest.createdAt;
+      const questDate = new Date(completedAt);
+      const questDateStr = questDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      return questDateStr !== today;
+    });
+
+    // Group by date using timezone-aware labels
+    const grouped = new Map<string, PomodoroQuest[]>();
+    questsExcludingToday.forEach((quest) => {
+      const completedAt = quest.completedAt || quest.createdAt;
+      const dateKey = getDateLabel(completedAt, timezone);
+      if (!grouped.has(dateKey)) {
+        grouped.set(dateKey, []);
+      }
+      grouped.get(dateKey)!.push(quest);
+    });
+
+    return { grouped, allQuests: questsExcludingToday };
+  }, [getPomodoroQuestsByDateRange, getLoadedDateRange, timezone]);
+
   // Group filtered quests by date
-  const groupedQuests = groupQuestsByDate(filteredQuests, daysToShow);
+  const groupedQuests = useCallback((): Map<string, PomodoroQuest[]> => {
+    const grouped = new Map<string, PomodoroQuest[]>();
+    const today = getUserLocalDate(timezone);
+
+    filteredQuests.forEach((quest) => {
+      // Skip today's quests
+      const completedAt = quest.completedAt || quest.createdAt;
+      const questDate = new Date(completedAt);
+      const questDateStr = questDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      if (questDateStr === today) {
+        return;
+      }
+
+      const dateKey = getDateLabel(completedAt, timezone);
+      if (!grouped.has(dateKey)) {
+        grouped.set(dateKey, []);
+      }
+      grouped.get(dateKey)!.push(quest);
+    });
+
+    return grouped;
+  }, [filteredQuests, timezone]);
+
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+    // Load more when user is within 100px of bottom or scrolled 90%
+    if (scrollPercentage > 0.9 || scrollHeight - scrollTop - clientHeight < 100) {
+      setDaysLoaded((prev) => {
+        const newDays = prev + LOAD_MORE_DAYS;
+        // Check if we've loaded all available quests
+        const totalAvailable = completedQuests.filter((q) => {
+          const completedAt = q.completedAt || q.createdAt;
+          const questDate = new Date(completedAt);
+          const questDateStr = questDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          });
+          const today = getUserLocalDate(timezone);
+          return questDateStr !== today;
+        }).length;
+
+        const { allQuests } = loadQuests();
+        const hasMoreQuests = allQuests.length < totalAvailable;
+
+        if (!hasMoreQuests) {
+          setHasMore(false);
+        }
+
+        return newDays;
+      });
+    }
+  }, [completedQuests, loadQuests, timezone]);
+
+  // Get grouped quests
+  const grouped = groupedQuests();
 
   // Sort dates (most recent first)
-  const sortedDates = Array.from(groupedQuests.keys()).sort((a, b) => {
+  const sortedDates = Array.from(grouped.keys()).sort((a, b) => {
     if (a === 'Today') return -1;
     if (b === 'Today') return 1;
     if (a === 'Yesterday') return -1;
     if (b === 'Yesterday') return 1;
+    // Sort by date (reverse)
     return new Date(b).getTime() - new Date(a).getTime();
   });
 
-  const handleDeleteClick = useCallback((quest: CompletedQuest) => {
+  const handleDeleteClick = useCallback((quest: PomodoroQuest) => {
     setQuestToDelete(quest);
   }, []);
 
   const handleDeleteConfirm = useCallback(() => {
     if (questToDelete) {
-      deleteCompletedQuest(questToDelete.id);
+      deletePomodoroQuest(questToDelete.id);
       setQuestToDelete(null);
     }
-  }, [questToDelete, deleteCompletedQuest]);
+  }, [questToDelete, deletePomodoroQuest]);
 
   const handleDeleteCancel = useCallback(() => {
     setQuestToDelete(null);
   }, []);
 
-  // Calculate total completed and sessions stats
+  // Calculate total completed and sessions stats (all time)
   const totalCompleted = filteredQuests.length;
   const completedSessions = sessions.filter((s: PomodoroSession) => s.completed && s.type === 'work').length;
   const skippedSessions = sessions.filter((s: PomodoroSession) => !s.completed && s.type === 'work').length;
@@ -231,7 +305,7 @@ export const HistoryDrawer = ({
                 {completedSessions}
               </div>
               <div className={`text-xs ${theme.textMuted} no-select`}>
-                COMPLETED SESSIONS
+                COMPLETED
               </div>
             </div>
             <div>
@@ -245,12 +319,14 @@ export const HistoryDrawer = ({
           </div>
         </div>
 
-        {/* Quest List */}
+        {/* Quest List with Infinite Scroll */}
         <div
+          ref={scrollContainerRef}
           className="overflow-y-auto"
+          onScroll={handleScroll}
           style={{ maxHeight: 'calc(100vh - 260px)' }}
         >
-          {filteredQuests.length === 0 ? (
+          {sortedDates.length === 0 ? (
             <div className="p-6">
               <p className={`text-sm ${theme.textMuted} text-center no-select`}>
                 {searchQuery ? 'No quests match your search' : 'No completed quests yet'}
@@ -259,7 +335,7 @@ export const HistoryDrawer = ({
           ) : (
             <div className="p-4">
               {sortedDates.map((dateKey) => {
-                const dateQuests = groupedQuests.get(dateKey)!;
+                const dateQuests = grouped.get(dateKey)!;
                 return (
                   <div key={dateKey} className="mb-6">
                     {/* Date Header */}
@@ -300,7 +376,7 @@ export const HistoryDrawer = ({
                             <div
                               className={`text-xs ${theme.textMuted} no-select`}
                             >
-                              {formatTime(quest.completedAt)} · {getRelativeTime(quest.completedAt)}
+                              {formatTime(quest.completedAt || quest.createdAt)} · {getRelativeTime(quest.completedAt || quest.createdAt)}
                             </div>
                           </div>
 
@@ -323,6 +399,23 @@ export const HistoryDrawer = ({
                   </div>
                 );
               })}
+
+              {/* Load More Indicator */}
+              {hasMore && !searchQuery && (
+                <div className="text-center py-4">
+                  <p className={`text-xs ${theme.textMuted} no-select`}>
+                    Scroll to load more...
+                  </p>
+                </div>
+              )}
+
+              {!hasMore && sortedDates.length > 0 && (
+                <div className="text-center py-4">
+                  <p className={`text-xs ${theme.textMuted} no-select`}>
+                    No more quests to load
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

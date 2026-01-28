@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Settings, PomodoroSession } from '../utils/themes';
+import type { PomodoroSettings, PomodoroSession } from '../utils/themes';
 import { playNotificationSound } from '../utils/sounds';
 import { useData } from '../contexts/DataContext';
 
@@ -178,7 +178,7 @@ export const useTimer = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const updateSettings = (newSettings: Partial<Settings>) => {
+  const updateSettings = (newSettings: Partial<PomodoroSettings>) => {
     updateDataSettings(newSettings);
   };
 

@@ -83,22 +83,6 @@ export const modeColors: Record<
   },
 };
 
-export interface Settings {
-  workDuration: number;
-  shortBreakDuration: number;
-  longBreakDuration: number;
-  longBreakInterval: number;
-  soundEnabled: boolean;
-  theme: string;
-  timezone?: Timezone;
-}
-
-export interface CompletedQuest {
-  id: string;
-  title: string;
-  completedAt: number;
-}
-
 // ============================================================================
 // Firebase Types
 // ============================================================================
@@ -112,7 +96,7 @@ export interface PomodoroSession {
   completed: boolean;
 }
 
-export interface PomodoroTask {
+export interface PomodoroQuest {
   id: string;
   title: string;
   completed: boolean;
@@ -130,17 +114,33 @@ export interface PomodoroSettings {
   timezone?: Timezone;
 }
 
-export interface PomodoroData {
+// Daily record for organizing data by date
+export interface DailyRecord {
+  date: string;  // ISO date: "2025-01-28"
+  completedPomodoros: number;
+  activeQuest: string | null;
+  completedQuests: PomodoroQuest[];
   sessions: PomodoroSession[];
-  tasks: PomodoroTask[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PomodoroData {
+  // Legacy flat arrays (for backward compatibility during migration)
+  sessions: PomodoroSession[];
+  quests: PomodoroQuest[];
   settings: PomodoroSettings;
   lastUpdated: number;
+  // New daily records structure
+  dailyRecords: Record<string, DailyRecord>;  // key: date string
 }
 
 export interface FirestoreUserData {
+  // Keep flat structure for Firestore simplicity
   sessions: PomodoroSession[];
-  tasks: PomodoroTask[];
+  quests: PomodoroQuest[];
   settings: PomodoroSettings;
+  dailyRecords: Record<string, DailyRecord>;
   updatedAt: number;
 }
 
@@ -191,12 +191,12 @@ export const TIMEZONES = [
 
 export type Timezone = (typeof TIMEZONES)[number];
 
-export const defaultSettings: Settings = {
+export const defaultSettings: PomodoroSettings = {
   workDuration: 25,
   shortBreakDuration: 5,
   longBreakDuration: 15,
   longBreakInterval: 4,
   soundEnabled: true,
   theme: 'dark',
-  timezone: 'America/Los_Angeles',
+  timezone: 'Asia/Shanghai',
 };

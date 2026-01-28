@@ -1,27 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Check, ChevronRight, ChevronDown, ChevronUp } from './icons';
 import { themes } from '../utils/themes';
-import type { CompletedQuest } from '../utils/themes';
+import type { PomodoroQuest } from '../utils/themes';
 
-interface CompletedQuestsProps {
+interface PomodoroQuestsProps {
   currentTheme: string;
   triggerUpdate?: number;
 }
 
 type ExpandState = 'collapsed' | 'partial' | 'expanded';
 
-export const CompletedQuests = ({
+export const PomodoroQuests = ({
   currentTheme,
   triggerUpdate,
-}: CompletedQuestsProps) => {
-  const [quests, setQuests] = useState<CompletedQuest[]>([]);
+}: PomodoroQuestsProps) => {
+  const [quests, setQuests] = useState<PomodoroQuest[]>([]);
   const [expandState, setExpandState] = useState<ExpandState>('collapsed');
   const theme = themes[currentTheme];
 
   const loadQuests = () => {
     const existing = localStorage.getItem('pomodoro-completed-quests');
     if (existing) {
-      const parsed: CompletedQuest[] = JSON.parse(existing);
+      const parsed: PomodoroQuest[] = JSON.parse(existing);
       setQuests(parsed);
     }
   };
@@ -46,7 +46,7 @@ export const CompletedQuests = ({
   const deleteQuest = (id: string) => {
     const existing = localStorage.getItem('pomodoro-completed-quests');
     if (existing) {
-      const parsed: CompletedQuest[] = JSON.parse(existing);
+      const parsed: PomodoroQuest[] = JSON.parse(existing);
       const filtered = parsed.filter((q) => q.id !== id);
       localStorage.setItem(
         'pomodoro-completed-quests',
@@ -120,7 +120,7 @@ export const CompletedQuests = ({
                   {quest.title}
                 </div>
                 <div className={`text-xs ${theme.textMuted} mt-1 no-select`}>
-                  {formatTime(quest.completedAt)}
+                  {formatTime(quest.completedAt || quest.createdAt)}
                 </div>
               </div>
               <button

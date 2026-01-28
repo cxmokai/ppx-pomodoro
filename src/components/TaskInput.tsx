@@ -2,19 +2,19 @@ import { useState, useEffect } from 'react';
 import { Check } from './icons';
 import { ConfirmModal } from './ConfirmModal';
 import { themes } from '../utils/themes';
-import type { CompletedQuest } from '../utils/themes';
+import type { PomodoroQuest } from '../utils/themes';
 import { useData } from '../contexts/DataContext';
 
 interface TaskInputProps {
   currentTheme: string;
-  onQuestComplete?: (quest: CompletedQuest) => void;
+  onQuestComplete?: (quest: PomodoroQuest) => void;
 }
 
 export const TaskInput = ({
   currentTheme,
   onQuestComplete,
 }: TaskInputProps) => {
-  const { currentTask, setCurrentTask, addCompletedQuest } = useData();
+  const { currentTask, setCurrentTask, addPomodoroQuest } = useData();
   const [isEditing, setIsEditing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -35,13 +35,15 @@ export const TaskInput = ({
     setIsCompleted(true);
 
     // Save to completed quests
-    const completedQuest: CompletedQuest = {
+    const completedQuest: PomodoroQuest = {
       id: Date.now().toString(),
       title: currentTask,
+      completed: true,
+      createdAt: Date.now(),
       completedAt: Date.now(),
     };
 
-    addCompletedQuest(completedQuest);
+    addPomodoroQuest(completedQuest);
 
     // Notify parent (for backward compatibility)
     onQuestComplete?.(completedQuest);

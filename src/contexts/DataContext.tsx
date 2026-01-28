@@ -1,25 +1,33 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
-import type { PomodoroData, PomodoroSettings, CompletedQuest, PomodoroSession } from '../utils/themes';
+import type { PomodoroData, PomodoroSettings, PomodoroQuest, PomodoroSession, DailyRecord } from '../utils/themes';
 import { loadData, saveData, subscribeToData } from '../services/storageService';
 import { useAuth } from './AuthContext';
 import { defaultSettings } from '../utils/themes';
 import { runMigration } from '../utils/migrateData';
+import {
+  getUserLocalDate,
+  getDateInTimezone,
+} from '../utils/dateUtils';
 
 interface DataContextType {
   settings: PomodoroSettings;
   updateSettings: (newSettings: Partial<PomodoroSettings>) => void;
   currentTask: string;
   setCurrentTask: (task: string) => void;
-  completedQuests: CompletedQuest[];
-  addCompletedQuest: (quest: CompletedQuest) => void;
-  deleteCompletedQuest: (id: string) => void;
+  completedQuests: PomodoroQuest[];
+  addPomodoroQuest: (quest: PomodoroQuest) => void;
+  deletePomodoroQuest: (id: string) => void;
   sessions: PomodoroSession[];
   setSessions: (sessions: PomodoroSession[] | ((prev: PomodoroSession[]) => PomodoroSession[])) => void;
   isLoading: boolean;
   yesterdayIncompleteQuest: { id: string; title: string } | null;
   dismissYesterdayQuest: () => void;
   moveYesterdayQuestToToday: () => void;
+  // Daily records functions
+  getDailyRecord: (date: string) => DailyRecord | null;
+  getPomodoroQuestsByDateRange: (startDate: string, endDate: string) => PomodoroQuest[];
+  incrementTodayPomodoroCount: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -39,10 +47,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const isInitializedRef = useRef(false);
   const [data, setData] = useState<PomodoroData>({
     sessions: [],
-    tasks: [],
+    quests: [],
     settings: defaultSettings,
     lastUpdated: Date.now(),
+    dailyRecords: {},
   });
+
+  // Get user's timezone
+  const timezone = data.settings.timezone || 'Asia/Shanghai';
 
   // Load data on mount and when user changes
   useEffect(() => {
@@ -95,39 +107,105 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const setCurrentTask = useCallback((task: string) => {
+    const now = Date.now();
+    const today = getUserLocalDate(timezone);
+
     setData((prev) => {
       const newTasks = task
-        ? [{ id: 'current', title: task, completed: false, createdAt: Date.now() }]
+        ? [{ id: 'current', title: task, completed: false, createdAt: now }]
         : [];
+
+      // Update today's daily record with active quest
+      const updatedDailyRecords = { ...prev.dailyRecords };
+      if (!updatedDailyRecords[today]) {
+        updatedDailyRecords[today] = {
+          date: today,
+          completedPomodoros: 0,
+          activeQuest: task || null,
+          completedQuests: [],
+          sessions: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+      } else {
+        updatedDailyRecords[today] = {
+          ...updatedDailyRecords[today],
+          activeQuest: task || null,
+          updatedAt: now,
+        };
+      }
+
       return {
         ...prev,
-        tasks: newTasks,
-        lastUpdated: Date.now(),
+        quests: newTasks,
+        dailyRecords: updatedDailyRecords,
+        lastUpdated: now,
       };
     });
-  }, []);
+  }, [timezone]);
 
-  const addCompletedQuest = useCallback((quest: CompletedQuest) => {
+  const addPomodoroQuest = useCallback((quest: PomodoroQuest) => {
+    const now = Date.now();
+    const completedAt = quest.completedAt || quest.createdAt;
+    const questDate = getDateInTimezone(new Date(completedAt), timezone);
+
     setData((prev) => {
-      const newCompletedQuest = {
+      const newPomodoroQuest = {
         ...quest,
         completed: true,
         createdAt: quest.completedAt,
-      } as CompletedQuest & { completed: boolean; createdAt: number };
+      } as PomodoroQuest & { completed: boolean; createdAt: number };
+
+      // Add to daily record for the quest's completion date
+      const updatedDailyRecords = { ...prev.dailyRecords };
+      if (!updatedDailyRecords[questDate]) {
+        updatedDailyRecords[questDate] = {
+          date: questDate,
+          completedPomodoros: 0,
+          activeQuest: null,
+          completedQuests: [newPomodoroQuest],
+          sessions: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+      } else {
+        updatedDailyRecords[questDate] = {
+          ...updatedDailyRecords[questDate],
+          completedQuests: [...updatedDailyRecords[questDate].completedQuests, newPomodoroQuest],
+          updatedAt: now,
+        };
+      }
+
       return {
         ...prev,
-        tasks: [...prev.tasks.filter(t => t.id !== 'current'), newCompletedQuest],
-        lastUpdated: Date.now(),
+        quests: [...prev.quests.filter(t => t.id !== 'current'), newPomodoroQuest],
+        dailyRecords: updatedDailyRecords,
+        lastUpdated: now,
       };
     });
-  }, []);
+  }, [timezone]);
 
-  const deleteCompletedQuest = useCallback((id: string) => {
-    setData((prev) => ({
-      ...prev,
-      tasks: prev.tasks.filter(t => t.id !== id),
-      lastUpdated: Date.now(),
-    }));
+  const deletePomodoroQuest = useCallback((id: string) => {
+    const now = Date.now();
+
+    setData((prev) => {
+      // Remove from all daily records
+      const updatedDailyRecords: Record<string, DailyRecord> = {};
+      Object.entries(prev.dailyRecords).forEach(([date, record]) => {
+        updatedDailyRecords[date] = {
+          ...record,
+          completedQuests: record.completedQuests.filter(q => q.id !== id),
+          updatedAt: now,
+        };
+      });
+
+      return {
+        ...prev,
+        quests: prev.quests.filter(t => t.id !== id),
+        dailyRecords: updatedDailyRecords,
+        lastUpdated: now,
+      };
+    });
   }, []);
 
   const setSessions = useCallback((sessions: PomodoroSession[] | ((prev: PomodoroSession[]) => PomodoroSession[])) => {
@@ -138,58 +216,123 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }));
   }, []);
 
-  // Check if there's an incomplete quest from yesterday
+  // Get daily record for a specific date
+  const getDailyRecord = useCallback((date: string): DailyRecord | null => {
+    return data.dailyRecords[date] || null;
+  }, [data.dailyRecords]);
+
+  // Get completed quests within a date range
+  const getPomodoroQuestsByDateRange = useCallback((
+    startDate: string,
+    endDate: string
+  ): PomodoroQuest[] => {
+    const quests: PomodoroQuest[] = [];
+    const dates = Object.keys(data.dailyRecords).sort();
+
+    for (const date of dates) {
+      if (date >= startDate && date <= endDate) {
+        quests.push(...data.dailyRecords[date].completedQuests);
+      }
+    }
+
+    return quests;
+  }, [data.dailyRecords]);
+
+  // Increment today's pomodoro count
+  const incrementTodayPomodoroCount = useCallback(() => {
+    const now = Date.now();
+    const today = getUserLocalDate(timezone);
+
+    setData((prev) => {
+      const updatedDailyRecords = { ...prev.dailyRecords };
+      if (!updatedDailyRecords[today]) {
+        updatedDailyRecords[today] = {
+          date: today,
+          completedPomodoros: 1,
+          activeQuest: null,
+          completedQuests: [],
+          sessions: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+      } else {
+        updatedDailyRecords[today] = {
+          ...updatedDailyRecords[today],
+          completedPomodoros: updatedDailyRecords[today].completedPomodoros + 1,
+          updatedAt: now,
+        };
+      }
+
+      return {
+        ...prev,
+        dailyRecords: updatedDailyRecords,
+        lastUpdated: now,
+      };
+    });
+  }, [timezone]);
+
+  // Check if there's an incomplete quest from yesterday (timezone-aware)
   const getYesterdayIncompleteQuest = useCallback((): { id: string; title: string } | null => {
-    const currentTask = data.tasks.find(t => t.id === 'current');
+    const currentTask = data.quests.find(t => t.id === 'current');
     if (!currentTask) return null;
 
-    const taskDate = new Date(currentTask.createdAt);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const taskDate = getDateInTimezone(new Date(currentTask.createdAt), timezone);
+    const today = getUserLocalDate(timezone);
 
     // Check if task was created yesterday (or earlier)
-    const isFromYesterday =
-      taskDate.toDateString() !== today.toDateString();
+    const isFromYesterday = taskDate !== today;
 
     if (isFromYesterday) {
       return { id: currentTask.id, title: currentTask.title };
     }
     return null;
-  }, [data.tasks]);
+  }, [data.quests, timezone]);
 
   const yesterdayIncompleteQuest = getYesterdayIncompleteQuest();
 
   const dismissYesterdayQuest = useCallback(() => {
     setData((prev) => ({
       ...prev,
-      tasks: prev.tasks.filter(t => t.id !== 'current'),
+      quests: prev.quests.filter(t => t.id !== 'current'),
       lastUpdated: Date.now(),
     }));
   }, []);
 
   const moveYesterdayQuestToToday = useCallback(() => {
-    // The quest is already current, just update its createdAt to today
+    const now = Date.now();
+    const today = getUserLocalDate(timezone);
+
     setData((prev) => ({
       ...prev,
-      tasks: prev.tasks.map(t =>
+      quests: prev.quests.map(t =>
         t.id === 'current'
-          ? { ...t, createdAt: Date.now() }
+          ? { ...t, createdAt: now }
           : t
       ),
-      lastUpdated: Date.now(),
+      dailyRecords: {
+        ...prev.dailyRecords,
+        [today]: {
+          ...(prev.dailyRecords[today] || {
+            date: today,
+            completedPomodoros: 0,
+            activeQuest: null,
+            completedQuests: [],
+            sessions: [],
+            createdAt: now,
+            updatedAt: now,
+          }),
+          activeQuest: prev.quests.find(t => t.id === 'current')?.title || null,
+          updatedAt: now,
+        },
+      },
+      lastUpdated: now,
     }));
-  }, []);
+  }, [timezone]);
 
   // Get current task from tasks array
-  const currentTask = data.tasks.find(t => t.id === 'current')?.title || '';
-  const completedQuests: CompletedQuest[] = data.tasks
-    .filter(t => t.completed)
-    .map(t => ({
-      id: t.id,
-      title: t.title,
-      completedAt: t.completedAt || t.createdAt,
-    }));
+  const currentTask = data.quests.find(t => t.id === 'current')?.title || '';
+  const completedQuests: PomodoroQuest[] = data.quests
+    .filter(t => t.completed);
 
   return (
     <DataContext.Provider
@@ -199,14 +342,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         currentTask,
         setCurrentTask,
         completedQuests,
-        addCompletedQuest,
-        deleteCompletedQuest,
+        addPomodoroQuest,
+        deletePomodoroQuest,
         sessions: data.sessions,
         setSessions,
         isLoading,
         yesterdayIncompleteQuest,
         dismissYesterdayQuest,
         moveYesterdayQuestToToday,
+        getDailyRecord,
+        getPomodoroQuestsByDateRange,
+        incrementTodayPomodoroCount,
       }}
     >
       {children}

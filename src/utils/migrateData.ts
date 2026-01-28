@@ -5,7 +5,7 @@
  * Run this in the browser console or call it on app startup.
  */
 
-import type { PomodoroData } from '../utils/themes';
+import type { PomodoroData, PomodoroQuest } from '../utils/themes';
 import { defaultSettings } from '../utils/themes';
 
 const OLD_KEYS = {
@@ -59,15 +59,15 @@ export function migrateData(): PomodoroData {
   }
 
   // 2. Migrate completed quests
-  const oldCompletedQuests = localStorage.getItem(OLD_KEYS.COMPLETED_QUESTS);
-  const tasks: PomodoroData['tasks'] = [];
+  const oldPomodoroQuests = localStorage.getItem(OLD_KEYS.COMPLETED_QUESTS);
+  const quests: PomodoroQuest[] = [];
 
-  if (oldCompletedQuests) {
+  if (oldPomodoroQuests) {
     try {
-      const parsed = JSON.parse(oldCompletedQuests);
+      const parsed = JSON.parse(oldPomodoroQuests);
       if (Array.isArray(parsed)) {
         parsed.forEach((quest: { id: string; title: string; completedAt: number }) => {
-          tasks.push({
+          quests.push({
             id: quest.id,
             title: quest.title,
             completed: true,
@@ -75,7 +75,7 @@ export function migrateData(): PomodoroData {
             completedAt: quest.completedAt,
           });
         });
-        console.log(`[Migration] Migrated ${tasks.length} completed quests`);
+        console.log(`[Migration] Migrated ${quests.length} completed quests`);
       }
     } catch (e) {
       console.warn('[Migration] Failed to parse completed quests');
@@ -85,7 +85,7 @@ export function migrateData(): PomodoroData {
   // 3. Migrate current task (if any)
   const oldTask = localStorage.getItem(OLD_KEYS.TASK);
   if (oldTask && oldTask.trim()) {
-    tasks.push({
+    quests.push({
       id: 'current',
       title: oldTask,
       completed: false,
@@ -97,8 +97,9 @@ export function migrateData(): PomodoroData {
   // 4. Create new data structure
   const newData: PomodoroData = {
     sessions: [], // No session history in old format
-    tasks,
+    quests,
     settings,
+    dailyRecords: {}, // Initialize with empty daily records
     lastUpdated: Date.now(),
   };
 

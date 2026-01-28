@@ -2,26 +2,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { Trash2, X, Search } from './icons';
 import { ConfirmModal } from './ConfirmModal';
 import { themes } from '../utils/themes';
-import type { CompletedQuest } from '../utils/themes';
+import type { PomodoroQuest } from '../utils/themes';
 import { useData } from '../contexts/DataContext';
 
-interface CompletedQuestsDrawerProps {
+interface PomodoroQuestsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   currentTheme: string;
   triggerUpdate?: number;
 }
 
-export const CompletedQuestsDrawer = ({
+export const PomodoroQuestsDrawer = ({
   isOpen,
   onClose,
   currentTheme,
-}: CompletedQuestsDrawerProps) => {
-  const { completedQuests, deleteCompletedQuest } = useData();
+}: PomodoroQuestsDrawerProps) => {
+  const { completedQuests, deletePomodoroQuest } = useData();
   const theme = themes[currentTheme];
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredQuests, setFilteredQuests] = useState<CompletedQuest[]>(completedQuests);
-  const [questToDelete, setQuestToDelete] = useState<CompletedQuest | null>(null);
+  const [filteredQuests, setFilteredQuests] = useState<PomodoroQuest[]>(completedQuests);
+  const [questToDelete, setQuestToDelete] = useState<PomodoroQuest | null>(null);
 
   // Debounced search
   useEffect(() => {
@@ -39,16 +39,16 @@ export const CompletedQuestsDrawer = ({
     return () => clearTimeout(handler);
   }, [searchQuery, completedQuests]);
 
-  const handleDeleteClick = useCallback((quest: CompletedQuest) => {
+  const handleDeleteClick = useCallback((quest: PomodoroQuest) => {
     setQuestToDelete(quest);
   }, []);
 
   const handleDeleteConfirm = useCallback(() => {
     if (questToDelete) {
-      deleteCompletedQuest(questToDelete.id);
+      deletePomodoroQuest(questToDelete.id);
       setQuestToDelete(null);
     }
-  }, [questToDelete, deleteCompletedQuest]);
+  }, [questToDelete, deletePomodoroQuest]);
 
   const handleDeleteCancel = useCallback(() => {
     setQuestToDelete(null);
@@ -159,7 +159,7 @@ export const CompletedQuestsDrawer = ({
                     <div
                       className={`text-xs ${theme.textMuted} mt-1 no-select`}
                     >
-                      {formatTime(quest.completedAt)}
+                      {formatTime(quest.completedAt || quest.createdAt)}
                     </div>
                   </div>
                   <button
