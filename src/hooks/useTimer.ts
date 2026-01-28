@@ -5,18 +5,93 @@ import { useData } from '../contexts/DataContext';
 
 export type TimerMode = 'work' | 'shortBreak' | 'longBreak';
 
+interface TimerState {
+  mode: TimerMode;
+  isRunning: boolean;
+  sessionCount: number;
+  sessionStartTime: number | null;
+  initialTimeLeft: number;
+}
+
+const TIMER_STORAGE_KEY = 'pomodoro-timer-state';
+
+const saveTimerState = (state: TimerState) => {
+  sessionStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
+};
+
+const loadTimerState = (): TimerState | null => {
+  const saved = sessionStorage.getItem(TIMER_STORAGE_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const clearTimerState = () => {
+  sessionStorage.removeItem(TIMER_STORAGE_KEY);
+};
+
 export const useTimer = () => {
   const { settings, updateSettings: updateDataSettings, sessions, setSessions, incrementTodayPomodoroCount } = useData();
-  const [mode, setMode] = useState<TimerMode>('work');
-  const [timeLeft, setTimeLeft] = useState(settings.workDuration * 60);
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessionCount, setSessionCount] = useState(0);
-  const [initialDuration, setInitialDuration] = useState(
-    settings.workDuration * 60
-  );
+
+  // Restore state from sessionStorage on mount
+  const getInitialState = () => {
+    const saved = loadTimerState();
+    const defaultDuration = settings.workDuration * 60;
+
+    if (saved) {
+      // Calculate elapsed time if timer was running
+      let restoredTimeLeft = saved.initialTimeLeft;
+      if (saved.isRunning && saved.sessionStartTime) {
+        const elapsed = Math.floor((Date.now() - saved.sessionStartTime) / 1000);
+        restoredTimeLeft = Math.max(0, saved.initialTimeLeft - elapsed);
+      }
+
+      return {
+        mode: saved.mode,
+        timeLeft: restoredTimeLeft,
+        isRunning: saved.sessionStartTime ? restoredTimeLeft > 0 : false,
+        sessionCount: saved.sessionCount,
+        initialDuration: saved.initialTimeLeft,
+        sessionStartTime: saved.sessionStartTime,
+      };
+    }
+
+    return {
+      mode: 'work' as TimerMode,
+      timeLeft: defaultDuration,
+      isRunning: false,
+      sessionCount: 0,
+      initialDuration: defaultDuration,
+      sessionStartTime: null,
+    };
+  };
+
+  const initialState = getInitialState();
+  const [mode, setMode] = useState<TimerMode>(initialState.mode);
+  const [timeLeft, setTimeLeft] = useState(initialState.timeLeft);
+  const [isRunning, setIsRunning] = useState(initialState.isRunning);
+  const [sessionCount, setSessionCount] = useState(initialState.sessionCount);
+  const [initialDuration, setInitialDuration] = useState(initialState.initialDuration);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const sessionStartTimeRef = useRef<number | null>(null);
+  const sessionStartTimeRef = useRef<number | null>(initialState.sessionStartTime);
+
+  // Save state to sessionStorage whenever it changes
+  useEffect(() => {
+    const stateToSave: TimerState = {
+      mode,
+      isRunning,
+      sessionCount,
+      sessionStartTime: sessionStartTimeRef.current,
+      initialTimeLeft: initialDuration,
+    };
+    saveTimerState(stateToSave);
+  }, [mode, isRunning, sessionCount, initialDuration]);
 
   const getModeDuration = useCallback(
     (currentMode: TimerMode): number => {
@@ -40,9 +115,12 @@ export const useTimer = () => {
 
   useEffect(() => {
     const duration = getModeDuration(mode);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTimeLeft(duration);
-    setInitialDuration(duration);
+    // Only reset if not restoring from saved state
+    if (!loadTimerState()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTimeLeft(duration);
+      setInitialDuration(duration);
+    }
   }, [mode, getModeDuration]);
 
   const startTimer = useCallback(() => {
@@ -55,7 +133,15 @@ export const useTimer = () => {
 
   const pauseTimer = useCallback(() => {
     setIsRunning(false);
-  }, []);
+    // Save paused state
+    saveTimerState({
+      mode,
+      isRunning: false,
+      sessionCount,
+      sessionStartTime: sessionStartTimeRef.current,
+      initialTimeLeft: timeLeft,
+    });
+  }, [mode, sessionCount, timeLeft]);
 
   // Save incomplete session when user skips or resets
   const saveIncompleteSession = useCallback((currentMode: TimerMode, endReason: 'skipped' | 'reset') => {
@@ -71,6 +157,8 @@ export const useTimer = () => {
       };
       setSessions([incompleteSession, ...sessions]);
       sessionStartTimeRef.current = null;
+      // Clear saved state when skipping or resetting
+      clearTimerState();
     }
   }, [sessions, setSessions]);
 
@@ -124,6 +212,8 @@ export const useTimer = () => {
     } else if (isRunning && timeLeft === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsRunning(false);
+      // Clear saved state when timer completes
+      clearTimerState();
 
       if (settings.soundEnabled) {
         playNotificationSound();
