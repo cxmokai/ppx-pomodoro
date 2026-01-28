@@ -4,7 +4,6 @@ import type { PomodoroData, PomodoroSettings, PomodoroQuest, PomodoroSession, Da
 import { loadData, saveData, subscribeToData } from '../services/storageService';
 import { useAuth } from './AuthContext';
 import { defaultSettings } from '../utils/themes';
-import { runMigration } from '../utils/migrateData';
 import {
   getUserLocalDate,
   getDateInTimezone,
@@ -62,15 +61,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       isInitializedRef.current = false;
 
-      // Check if migration is needed
-      const migratedData = runMigration();
-      if (migratedData) {
-        console.log('[DataContext] Using migrated data');
-        setData(migratedData);
-      } else {
-        const loadedData = await loadData();
-        setData(loadedData);
-      }
+      const loadedData = await loadData();
+      setData(loadedData);
 
       setIsLoading(false);
       // Mark as initialized after data is loaded

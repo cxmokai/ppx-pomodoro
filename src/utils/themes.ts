@@ -127,12 +127,10 @@ export interface DailyRecord {
 }
 
 export interface PomodoroData {
-  // Legacy flat arrays (for backward compatibility during migration)
   sessions: PomodoroSession[];
   quests: PomodoroQuest[];
   settings: PomodoroSettings;
   lastUpdated: number;
-  // New daily records structure
   dailyRecords: Record<string, DailyRecord>;  // key: date string
 }
 

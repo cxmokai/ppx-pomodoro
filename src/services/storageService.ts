@@ -265,7 +265,7 @@ const loadDataFromLocalStorage = (): PomodoroData => {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
       const parsed = JSON.parse(data);
-      // Add dailyRecords if migrating from old format
+      // Ensure dailyRecords exists (defensive check)
       if (!parsed.dailyRecords) {
         parsed.dailyRecords = {};
       }
