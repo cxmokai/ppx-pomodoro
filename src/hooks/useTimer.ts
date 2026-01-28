@@ -59,9 +59,16 @@ export const useTimer = () => {
   );
 
   const settingsRef = useRef(settings);
+  const isFirstLoadRef = useRef(true);
 
-  // Clear saved state when settings change and reset timer
+  // Clear saved state when settings change and reset timer (but not on first load)
   useEffect(() => {
+    if (isFirstLoadRef.current) {
+      isFirstLoadRef.current = false;
+      settingsRef.current = settings;
+      return;
+    }
+
     if (settingsRef.current.workDuration !== settings.workDuration ||
         settingsRef.current.shortBreakDuration !== settings.shortBreakDuration ||
         settingsRef.current.longBreakDuration !== settings.longBreakDuration) {
