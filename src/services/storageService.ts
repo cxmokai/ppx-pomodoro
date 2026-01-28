@@ -1,8 +1,20 @@
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot,
+  serverTimestamp,
+} from 'firebase/firestore';
 import type { Unsubscribe } from 'firebase/firestore';
 import { FirestoreError } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import type { PomodoroData, PomodoroSettings } from '../utils/themes';
+import type {
+  PomodoroData,
+  PomodoroSettings,
+  PomodoroDailyRecord,
+  PomodoroQuest,
+  PomodoroSession,
+} from '../utils/themes';
 
 const STORAGE_KEY = 'pomodoro_data_v3';
 const COLLECTION = 'user_data';
@@ -55,7 +67,11 @@ class SyncManager {
   }
 
   scheduleWrite(data: PomodoroData): void {
-    console.log('[SyncManager] scheduleWrite called, will flush in', this.DEBOUNCE_MS, 'ms');
+    console.log(
+      '[SyncManager] scheduleWrite called, will flush in',
+      this.DEBOUNCE_MS,
+      'ms'
+    );
     this.pendingWrite = data;
     this.persistPendingWrite(data);
 
@@ -108,7 +124,9 @@ class SyncManager {
 
     if (!this.pendingWrite) return;
     if (!isLoggedIn()) {
-      console.warn('[SyncManager] User logged out, keeping pending write for later');
+      console.warn(
+        '[SyncManager] User logged out, keeping pending write for later'
+      );
       return;
     }
 
@@ -140,14 +158,24 @@ class SyncManager {
           error instanceof FirestoreError && error.code === 'permission-denied';
 
         if (isPermissionDenied) {
-          console.warn('[SyncManager] Permission denied (rate limit?), will retry later');
-          setTimeout(() => this.scheduleWrite(dataToWrite), this.RETRY_DELAY_MS);
+          console.warn(
+            '[SyncManager] Permission denied (rate limit?), will retry later'
+          );
+          setTimeout(
+            () => this.scheduleWrite(dataToWrite),
+            this.RETRY_DELAY_MS
+          );
           break;
         }
 
-        console.warn(`[SyncManager] Write failed, retry ${retries}/${this.MAX_RETRIES}`, error);
+        console.warn(
+          `[SyncManager] Write failed, retry ${retries}/${this.MAX_RETRIES}`,
+          error
+        );
         if (retries < this.MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, retries - 1)));
+          await new Promise((r) =>
+            setTimeout(r, 1000 * Math.pow(2, retries - 1))
+          );
         }
       }
     }
@@ -155,7 +183,9 @@ class SyncManager {
     this.isWriting = false;
 
     if (!success && retries >= this.MAX_RETRIES) {
-      console.error('[SyncManager] Failed to write after all retries, keeping for later');
+      console.error(
+        '[SyncManager] Failed to write after all retries, keeping for later'
+      );
     }
 
     if (this.writeRequestedDuringFlush) {
@@ -168,7 +198,9 @@ class SyncManager {
 
   shouldAcceptCloudData(hasPendingWrites: boolean): boolean {
     if (hasPendingWrites) {
-      console.debug('[SyncManager] Ignoring snapshot: local echo (hasPendingWrites=true)');
+      console.debug(
+        '[SyncManager] Ignoring snapshot: local echo (hasPendingWrites=true)'
+      );
       return false;
     }
     if (this.pendingWrite !== null) {
@@ -237,7 +269,9 @@ export const subscribeToData = (
           const cloudData: PomodoroData = {
             settings: data.settings || getDefaultSettings(),
             dailyRecords: data.dailyRecords || {},
-            lastUpdated: data.updatedAt ? data.updatedAt.toMillis() : Date.now(),
+            lastUpdated: data.updatedAt
+              ? data.updatedAt.toMillis()
+              : Date.now(),
           };
           saveDataToLocalStorage(cloudData);
           callback(cloudData);
@@ -312,15 +346,123 @@ function getDefaultSettings(): PomodoroSettings {
 // Main API
 // ============================================================================
 
-export const loadData = async (): Promise<PomodoroData> => {
-  if (isLoggedIn()) {
-    const cloudData = await loadDataFromFirestore();
-    if (cloudData) {
-      saveDataToLocalStorage(cloudData);
-      return cloudData;
+function mergeDailyRecords(
+  local: Record<string, PomodoroDailyRecord>,
+  cloud: Record<string, PomodoroDailyRecord>
+): Record<string, PomodoroDailyRecord> {
+  const merged: Record<string, PomodoroDailyRecord> = {};
+  const allDates = new Set([...Object.keys(local), ...Object.keys(cloud)]);
+
+  for (const date of allDates) {
+    const localRecord = local[date];
+    const cloudRecord = cloud[date];
+
+    if (!localRecord) {
+      merged[date] = cloudRecord;
+    } else if (!cloudRecord) {
+      merged[date] = localRecord;
+    } else {
+      // Both exist - merge them
+      const localQuests = localRecord.completedQuests || [];
+      const cloudQuests = cloudRecord.completedQuests || [];
+      const localSessions = localRecord.sessions || [];
+      const cloudSessions = cloudRecord.sessions || [];
+
+      // Merge quests by id (avoid duplicates)
+      const questMap = new Map<string, PomodoroQuest>();
+      for (const q of cloudQuests) {
+        questMap.set(q.id, q);
+      }
+      for (const q of localQuests) {
+        if (!questMap.has(q.id)) {
+          questMap.set(q.id, q);
+        }
+      }
+
+      // Merge sessions by id (avoid duplicates)
+      const sessionMap = new Map<string, PomodoroSession>();
+      for (const s of cloudSessions) {
+        sessionMap.set(s.id, s);
+      }
+      for (const s of localSessions) {
+        if (!sessionMap.has(s.id)) {
+          sessionMap.set(s.id, s);
+        }
+      }
+
+      // Use newer record as base but with merged data
+      const useLocal = localRecord.updatedAt > cloudRecord.updatedAt;
+
+      merged[date] = {
+        date: localRecord.date,
+        completedPomodoros: Math.max(
+          localRecord.completedPomodoros,
+          cloudRecord.completedPomodoros
+        ),
+        activeQuest: useLocal
+          ? localRecord.activeQuest
+          : cloudRecord.activeQuest,
+        completedQuests: Array.from(questMap.values()),
+        sessions: Array.from(sessionMap.values()),
+        createdAt: Math.min(localRecord.createdAt, cloudRecord.createdAt),
+        updatedAt: Math.max(localRecord.updatedAt, cloudRecord.updatedAt),
+      };
     }
   }
-  return loadDataFromLocalStorage();
+
+  return merged;
+}
+
+function mergeData(local: PomodoroData, cloud: PomodoroData): PomodoroData {
+  const useLocalSettings = local.lastUpdated > cloud.lastUpdated;
+  const mergedSettings = useLocalSettings ? local.settings : cloud.settings;
+  const mergedDailyRecords = mergeDailyRecords(
+    local.dailyRecords,
+    cloud.dailyRecords
+  );
+
+  return {
+    settings: mergedSettings,
+    dailyRecords: mergedDailyRecords,
+    lastUpdated: Math.max(local.lastUpdated, cloud.lastUpdated),
+  };
+}
+
+export const loadData = async (): Promise<PomodoroData> => {
+  const localData = loadDataFromLocalStorage();
+
+  if (isLoggedIn()) {
+    const cloudData = await loadDataFromFirestore();
+
+    if (cloudData) {
+      const localHasData = Object.keys(localData.dailyRecords).length > 0;
+      const cloudHasData = Object.keys(cloudData.dailyRecords).length > 0;
+
+      if (localHasData && cloudHasData) {
+        console.log('[Storage] Merging local and cloud data');
+        const mergedData = mergeData(localData, cloudData);
+        saveDataToLocalStorage(mergedData);
+        syncManager.scheduleWrite(mergedData);
+        return mergedData;
+      } else if (localHasData && !cloudHasData) {
+        console.log('[Storage] Cloud empty, uploading local data');
+        syncManager.scheduleWrite(localData);
+        return localData;
+      } else {
+        console.log('[Storage] Using cloud data');
+        saveDataToLocalStorage(cloudData);
+        return cloudData;
+      }
+    } else {
+      console.log('[Storage] No cloud data, uploading local data');
+      if (Object.keys(localData.dailyRecords).length > 0) {
+        syncManager.scheduleWrite(localData);
+      }
+      return localData;
+    }
+  }
+
+  return localData;
 };
 
 export const saveData = async (data: PomodoroData): Promise<void> => {
