@@ -107,7 +107,7 @@ export const useTimer = () => {
       }
 
       // If timer is not running, use saved initialTimeLeft (which is the paused timeLeft)
-      // or current settings if no saved state
+      // Clear sessionStartTime since the timer is paused
       return {
         mode: saved.mode,
         timeLeft: saved.initialTimeLeft,
@@ -174,15 +174,7 @@ export const useTimer = () => {
 
   const pauseTimer = useCallback(() => {
     setIsRunning(false);
-    // Save paused state
-    saveTimerState({
-      mode,
-      isRunning: false,
-      sessionCount,
-      sessionStartTime: sessionStartTimeRef.current,
-      initialTimeLeft: timeLeft,
-    });
-  }, [mode, sessionCount, timeLeft]);
+  }, []);
 
   // Save incomplete session when user skips or resets
   const saveIncompleteSession = useCallback((currentMode: TimerMode, endReason: 'skipped' | 'reset') => {
