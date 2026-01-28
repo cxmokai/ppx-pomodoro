@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Trash2, X, Search, CheckCircle2, History } from './icons';
+import { Trash2, X, Search, CheckCircle2, History, Timer, Diamond } from './icons';
 import { ConfirmModal } from './ConfirmModal';
 import { themes } from '../utils/themes';
 import type { PomodoroQuest } from '../utils/themes';
@@ -8,6 +8,7 @@ import {
   getDateLabel,
   getDateRangeForLoading,
   getUserLocalDate,
+  getDateInTimezone,
 } from '../utils/dateUtils';
 
 interface HistoryDrawerProps {
@@ -52,6 +53,7 @@ export const HistoryDrawer = ({
     deletePomodoroQuest,
     settings,
     getPomodoroQuestsByDateRange,
+    getDailyRecord,
   } = useData();
   const theme = themes[currentTheme];
   const timezone = settings.timezone || 'Asia/Shanghai';
@@ -206,6 +208,34 @@ export const HistoryDrawer = ({
   // Get grouped quests
   const grouped = groupedQuests();
 
+  // Create a mapping of date label to completed pomodoro count
+  const dateToPomodoroCount = useCallback((dateLabel: string): number => {
+    let actualDateStr: string;
+
+    if (dateLabel === 'Today') {
+      actualDateStr = getUserLocalDate(timezone);
+    } else if (dateLabel === 'Yesterday') {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      actualDateStr = getDateInTimezone(yesterday, timezone);
+    } else {
+      // dateLabel is already a date string in format like "Jan 28, 2025"
+      // We need to parse it back to a date string
+      // The dateLabel comes from getDateLabel which formats the date
+      // Let's parse the quests to find the actual date
+      const questsForDate = grouped.get(dateLabel);
+      if (questsForDate && questsForDate.length > 0) {
+        const completedAt = questsForDate[0].completedAt || questsForDate[0].createdAt;
+        actualDateStr = getDateInTimezone(new Date(completedAt), timezone);
+      } else {
+        return 0;
+      }
+    }
+
+    const record = getDailyRecord(actualDateStr);
+    return record?.completedPomodoros || 0;
+  }, [grouped, getDailyRecord, timezone]);
+
   // Sort dates (most recent first)
   const sortedDates = Array.from(grouped.keys()).sort((a, b) => {
     if (a === 'Today') return -1;
@@ -314,9 +344,17 @@ export const HistoryDrawer = ({
                   <div key={dateKey} className="mb-6">
                     {/* Date Header */}
                     <div
-                      className={`text-xs font-bold ${theme.textMuted} mb-3 px-2 no-select`}
+                      className={`text-xs font-bold ${theme.textMuted} mb-3 px-2 no-select flex items-center gap-2`}
                     >
-                      {dateKey} ({dateQuests.length})
+                      <span>{dateKey}</span>
+                      <span className="flex items-center gap-1">
+                        <Timer className="w-3 h-3" />
+                        {dateToPomodoroCount(dateKey)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Diamond className="w-3 h-3" />
+                        {dateQuests.length}
+                      </span>
                     </div>
 
                     {/* Quests for this date */}

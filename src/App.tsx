@@ -27,7 +27,6 @@ function AppContent() {
     timeLeft,
     mode,
     isRunning,
-    sessionCount,
     settings,
     initialDuration,
     toggleTimer,
@@ -39,6 +38,7 @@ function AppContent() {
     yesterdayIncompleteQuest,
     dismissYesterdayQuest,
     moveYesterdayQuestToToday,
+    todayCompletedPomodoros,
   } = useData();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -90,8 +90,8 @@ function AppContent() {
             className={`text-2xl tracking-tight ${theme.text} no-select flex items-center gap-2`}
           >
             <Diamond className="w-4 h-4" />
-            POMODORO
-            {sessionCount > 0 && (
+            PPX POMODORO
+            {todayCompletedPomodoros > 0 && (
               <span
                 className="text-sm no-select"
                 style={{
@@ -100,7 +100,7 @@ function AppContent() {
                   marginLeft: '4px',
                 }}
               >
-                +{sessionCount}
+                +{todayCompletedPomodoros}
               </span>
             )}
           </h1>

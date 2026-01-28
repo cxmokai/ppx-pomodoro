@@ -23,6 +23,7 @@ interface DataContextType {
   yesterdayIncompleteQuest: { id: string; title: string } | null;
   dismissYesterdayQuest: () => void;
   moveYesterdayQuestToToday: () => void;
+  todayCompletedPomodoros: number;
   // Daily records functions
   getDailyRecord: (date: string) => PomodoroDailyRecord | null;
   getPomodoroQuestsByDateRange: (startDate: string, endDate: string) => PomodoroQuest[];
@@ -403,6 +404,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     return getAllSessions(data.dailyRecords);
   }, [data.dailyRecords]);
 
+  const todayCompletedPomodoros = useMemo(() => {
+    const todayRecord = data.dailyRecords[today];
+    return todayRecord?.completedPomodoros || 0;
+  }, [data.dailyRecords, today]);
+
   return (
     <DataContext.Provider
       value={{
@@ -419,6 +425,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         yesterdayIncompleteQuest,
         dismissYesterdayQuest,
         moveYesterdayQuestToToday,
+        todayCompletedPomodoros,
         getDailyRecord,
         getPomodoroQuestsByDateRange,
         incrementTodayPomodoroCount,
