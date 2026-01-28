@@ -113,7 +113,3 @@ pnpm run preview
 ## License
 
 MIT
-
----
-
-Made with ❤️ by [kai](https://github.com/cxmokai)
