@@ -117,11 +117,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
       // Update today's daily record with active quest
       const updatedDailyRecords = { ...prev.dailyRecords };
+      const activeQuestObj = quest
+        ? { id: 'current', title: quest, completed: false, createdAt: now }
+        : null;
+
       if (!updatedDailyRecords[today]) {
         updatedDailyRecords[today] = {
           date: today,
           completedPomodoros: 0,
-          activeQuest: quest || null,
+          activeQuest: activeQuestObj,
           completedQuests: [],
           sessions: [],
           createdAt: now,
@@ -130,7 +134,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       } else {
         updatedDailyRecords[today] = {
           ...updatedDailyRecords[today],
-          activeQuest: quest || null,
+          activeQuest: activeQuestObj,
           updatedAt: now,
         };
       }
@@ -302,31 +306,36 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const now = Date.now();
     const today = getUserLocalDate(timezone);
 
-    setData((prev) => ({
-      ...prev,
-      quests: prev.quests.map(t =>
-        t.id === 'current'
-          ? { ...t, createdAt: now }
-          : t
-      ),
-      dailyRecords: {
-        ...prev.dailyRecords,
-        [today]: {
-          ...(prev.dailyRecords[today] || {
-            date: today,
-            completedPomodoros: 0,
-            activeQuest: null,
-            completedQuests: [],
-            sessions: [],
-            createdAt: now,
+    setData((prev) => {
+      const currentQuest = prev.quests.find(t => t.id === 'current');
+      const activeQuestObj = currentQuest ? { ...currentQuest, createdAt: now } : null;
+
+      return {
+        ...prev,
+        quests: prev.quests.map(t =>
+          t.id === 'current'
+            ? { ...t, createdAt: now }
+            : t
+        ),
+        dailyRecords: {
+          ...prev.dailyRecords,
+          [today]: {
+            ...(prev.dailyRecords[today] || {
+              date: today,
+              completedPomodoros: 0,
+              activeQuest: null,
+              completedQuests: [],
+              sessions: [],
+              createdAt: now,
+              updatedAt: now,
+            }),
+            activeQuest: activeQuestObj,
             updatedAt: now,
-          }),
-          activeQuest: prev.quests.find(t => t.id === 'current')?.title || null,
-          updatedAt: now,
+          },
         },
-      },
-      lastUpdated: now,
-    }));
+        lastUpdated: now,
+      };
+    });
   }, [timezone]);
 
   // Get current quest from quests array

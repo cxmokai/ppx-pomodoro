@@ -119,7 +119,7 @@ export interface PomodoroSettings {
 export interface DailyRecord {
   date: string;  // ISO date: "2025-01-28"
   completedPomodoros: number;
-  activeQuest: string | null;
+  activeQuest: PomodoroQuest | null;
   completedQuests: PomodoroQuest[];
   sessions: PomodoroSession[];
   createdAt: number;
