@@ -38,6 +38,47 @@ const clearTimerState = () => {
 export const useTimer = () => {
   const { settings, updateSettings: updateDataSettings, sessions, setSessions, incrementTodayPomodoroCount } = useData();
 
+  const getModeDuration = useCallback(
+    (currentMode: TimerMode): number => {
+      switch (currentMode) {
+        case 'work':
+          return settings.workDuration * 60;
+        case 'shortBreak':
+          return settings.shortBreakDuration * 60;
+        case 'longBreak':
+          return settings.longBreakDuration * 60;
+        default:
+          return settings.workDuration * 60;
+      }
+    },
+    [
+      settings.workDuration,
+      settings.shortBreakDuration,
+      settings.longBreakDuration,
+    ]
+  );
+
+  const settingsRef = useRef(settings);
+
+  // Clear saved state when settings change and reset timer
+  useEffect(() => {
+    if (settingsRef.current.workDuration !== settings.workDuration ||
+        settingsRef.current.shortBreakDuration !== settings.shortBreakDuration ||
+        settingsRef.current.longBreakDuration !== settings.longBreakDuration) {
+      // Settings changed, clear saved state and reset timer to new settings
+      clearTimerState();
+      setMode((currentMode) => {
+        const newDuration = getModeDuration(currentMode);
+        setTimeLeft(newDuration);
+        setInitialDuration(newDuration);
+        setIsRunning(false);
+        sessionStartTimeRef.current = null;
+        return currentMode;
+      });
+      settingsRef.current = settings;
+    }
+  }, [settings.workDuration, settings.shortBreakDuration, settings.longBreakDuration, getModeDuration]);
+
   // Restore state from sessionStorage on mount
   const getInitialState = () => {
     const saved = loadTimerState();
@@ -115,26 +156,6 @@ export const useTimer = () => {
     };
     saveTimerState(stateToSave);
   }, [mode, isRunning, sessionCount, initialDuration]);
-
-  const getModeDuration = useCallback(
-    (currentMode: TimerMode): number => {
-      switch (currentMode) {
-        case 'work':
-          return settings.workDuration * 60;
-        case 'shortBreak':
-          return settings.shortBreakDuration * 60;
-        case 'longBreak':
-          return settings.longBreakDuration * 60;
-        default:
-          return settings.workDuration * 60;
-      }
-    },
-    [
-      settings.workDuration,
-      settings.shortBreakDuration,
-      settings.longBreakDuration,
-    ]
-  );
 
   useEffect(() => {
     const duration = getModeDuration(mode);
