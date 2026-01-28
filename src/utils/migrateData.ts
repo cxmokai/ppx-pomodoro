@@ -82,7 +82,7 @@ export function migrateData(): PomodoroData {
     }
   }
 
-  // 3. Migrate current task (if any)
+  // 3. Migrate current quest (if any)
   const oldTask = localStorage.getItem(OLD_KEYS.TASK);
   if (oldTask && oldTask.trim()) {
     quests.push({
@@ -91,7 +91,7 @@ export function migrateData(): PomodoroData {
       completed: false,
       createdAt: Date.now(),
     });
-    console.log('[Migration] Migrated current task:', oldTask);
+    console.log('[Migration] Migrated current quest:', oldTask);
   }
 
   // 4. Create new data structure

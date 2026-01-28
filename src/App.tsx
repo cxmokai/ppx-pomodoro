@@ -4,7 +4,7 @@ import { useData } from './contexts/DataContext';
 import { TimerDisplay } from './components/TimerDisplay';
 import { Controls } from './components/Controls';
 import { ModeIndicator } from './components/ModeIndicator';
-import { TaskInput } from './components/TaskInput';
+import { QuestInput } from './components/QuestInput';
 import { HistoryDrawer } from './components/HistoryDrawer';
 import { YesterdayQuestModal } from './components/YesterdayQuestModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -166,7 +166,7 @@ function AppContent() {
           />
         </div>
 
-        {/* Task Input */}
+        {/* Quest Input */}
         <div className={`p-5 brutal-card ${theme.surface}`}>
           <div
             className={`flex items-center justify-between mb-3 ${theme.textMuted}`}
@@ -189,7 +189,7 @@ function AppContent() {
               <span>COMPLETED</span>
             </button>
           </div>
-          <TaskInput currentTheme={settings.theme} />
+          <QuestInput currentTheme={settings.theme} />
         </div>
       </div>
 

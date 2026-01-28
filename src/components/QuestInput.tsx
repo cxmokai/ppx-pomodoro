@@ -5,16 +5,16 @@ import { themes } from '../utils/themes';
 import type { PomodoroQuest } from '../utils/themes';
 import { useData } from '../contexts/DataContext';
 
-interface TaskInputProps {
+interface QuestInputProps {
   currentTheme: string;
   onQuestComplete?: (quest: PomodoroQuest) => void;
 }
 
-export const TaskInput = ({
+export const QuestInput = ({
   currentTheme,
   onQuestComplete,
-}: TaskInputProps) => {
-  const { currentTask, setCurrentTask, addPomodoroQuest } = useData();
+}: QuestInputProps) => {
+  const { currentQuest, setCurrentQuest, addPomodoroQuest } = useData();
   const [isEditing, setIsEditing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -22,11 +22,11 @@ export const TaskInput = ({
 
   useEffect(() => {
     // Sync with localStorage for fallback
-    localStorage.setItem('pomodoro-task', currentTask);
-  }, [currentTask]);
+    localStorage.setItem('pomodoro-quest', currentQuest);
+  }, [currentQuest]);
 
   const handleCompleteClick = () => {
-    if (!currentTask.trim()) return;
+    if (!currentQuest.trim()) return;
     setShowConfirmModal(true);
   };
 
@@ -37,7 +37,7 @@ export const TaskInput = ({
     // Save to completed quests
     const completedQuest: PomodoroQuest = {
       id: Date.now().toString(),
-      title: currentTask,
+      title: currentQuest,
       completed: true,
       createdAt: Date.now(),
       completedAt: Date.now(),
@@ -50,9 +50,9 @@ export const TaskInput = ({
 
     // Clear after animation
     setTimeout(() => {
-      setCurrentTask('');
+      setCurrentQuest('');
       setIsCompleted(false);
-      localStorage.removeItem('pomodoro-task');
+      localStorage.removeItem('pomodoro-quest');
     }, 1500);
   };
 
@@ -67,8 +67,8 @@ export const TaskInput = ({
         {isEditing ? (
           <input
             type="text"
-            value={currentTask}
-            onChange={(e) => setCurrentTask(e.target.value)}
+            value={currentQuest}
+            onChange={(e) => setCurrentQuest(e.target.value)}
             onBlur={() => setIsEditing(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -87,13 +87,13 @@ export const TaskInput = ({
           <div
             onClick={() => !isCompleted && setIsEditing(true)}
             className={`w-full px-4 py-3 cursor-pointer brutal-btn no-select flex items-center ${
-              currentTask ? theme.surfaceHighlight : theme.bg
+              currentQuest ? theme.surfaceHighlight : theme.bg
             } ${isCompleted ? 'opacity-50' : ''}`}
             style={{
-              background: currentTask
+              background: currentQuest
                 ? theme.surfaceHighlight.replace('bg-[', '').replace(']', '')
                 : theme.bg.replace('bg-[', '').replace(']', ''),
-              color: currentTask
+              color: currentQuest
                 ? theme.text.replace('text-[', '').replace(']', '')
                 : theme.textMuted.replace('text-[', '').replace(']', ''),
             }}
@@ -103,14 +103,14 @@ export const TaskInput = ({
                 textDecoration: isCompleted ? 'line-through' : 'none',
               }}
             >
-              {currentTask || 'Click to add quest...'}
+              {currentQuest || 'Click to add quest...'}
             </span>
           </div>
         )}
       </div>
 
-      {/* Complete button - only show when there's a task */}
-      {currentTask && !isEditing && (
+      {/* Complete button - only show when there's a quest */}
+      {currentQuest && !isEditing && (
         <button
           onClick={handleCompleteClick}
           disabled={isCompleted}
@@ -129,7 +129,7 @@ export const TaskInput = ({
     <ConfirmModal
       isOpen={showConfirmModal}
       title="COMPLETE QUEST?"
-      message={`Mark "${currentTask}" as completed?`}
+      message={`Mark "${currentQuest}" as completed?`}
       confirmText="COMPLETE"
       cancelText="CANCEL"
       onConfirm={handleCompleteConfirm}
